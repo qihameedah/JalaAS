@@ -1,7 +1,8 @@
 // lib/main.dart - Mobile Entry Point
+
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'services/supabase_service.dart';
 import 'screens/mobile/pin_setup_screen.dart';
 import 'screens/mobile/pin_enter_screen.dart';
@@ -31,6 +32,20 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
+
+      // Localization support for Arabic and English
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ar'), // Arabic support
+        Locale('en'), // English support
+      ],
+      locale: const Locale('ar'), // Force Arabic UI
+
+      // App theme
       theme: ThemeData(
         primarySwatch: Colors.blue,
         primaryColor: const Color(AppConstants.primaryColor),
@@ -74,6 +89,7 @@ class MyApp extends StatelessWidget {
           labelStyle: GoogleFonts.notoSansArabic(),
         ),
       ),
+
       home: const AppInitializer(),
     );
   }
@@ -89,7 +105,7 @@ class AppInitializer extends StatefulWidget {
 class _AppInitializerState extends State<AppInitializer>
     with WidgetsBindingObserver {
   bool _hasInternet = true;
-  bool _isNavigating = false; // Prevent multiple navigation calls
+  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -116,11 +132,11 @@ class _AppInitializerState extends State<AppInitializer>
     }
   }
 
+  // Initial app state: check internet, PIN, and login
   Future<void> _checkInitialState() async {
     if (_isNavigating || !mounted) return;
 
     try {
-      // Check internet connection
       _hasInternet = await Helpers.hasInternetConnection();
 
       if (!mounted) return;
@@ -130,7 +146,6 @@ class _AppInitializerState extends State<AppInitializer>
         return;
       }
 
-      // Check if PIN is required
       final shouldRequirePin = await Helpers.shouldRequirePin();
       final hasPinCode = await Helpers.hasPinCode();
 
@@ -146,12 +161,12 @@ class _AppInitializerState extends State<AppInitializer>
     } catch (e) {
       print('Error in _checkInitialState: $e');
       if (mounted) {
-        // Fallback to login screen in case of error
         _navigateToLogin();
       }
     }
   }
 
+  // Resume app: recheck internet and PIN
   Future<void> _checkAppResume() async {
     if (_isNavigating || !mounted) return;
 
@@ -176,6 +191,7 @@ class _AppInitializerState extends State<AppInitializer>
     }
   }
 
+  // Check if user is already logged in
   Future<void> _checkLoginStatus() async {
     if (_isNavigating || !mounted) return;
 
@@ -197,6 +213,7 @@ class _AppInitializerState extends State<AppInitializer>
     }
   }
 
+  // Navigation methods
   void _navigateToNoInternet() {
     if (_isNavigating || !mounted) return;
     _isNavigating = true;

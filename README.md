@@ -22,4 +22,6 @@ flutter run -d chrome -t lib/web/web_main.dart
 admin email:
 qihameedah@gmail.com
 
+itd@jala.ps
+
 for mobile interface you must run the project like normal

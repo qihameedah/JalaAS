@@ -231,7 +231,7 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 2,
           child: InkWell(
-            onTap: () => _viewStatementDetail(statement),
+            onTap: statement.documentType == 'other' ? null : () => _viewStatementDetail(statement),
             borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -373,11 +373,13 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (statement.documentType != 'other')
                       Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
                         color: Colors.grey[400],
                       ),
+
                     ],
                   ),
                 ],

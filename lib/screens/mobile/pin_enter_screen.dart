@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
+import 'login_screen.dart';
 
 class PinEnterScreen extends StatefulWidget {
   final VoidCallback onPinVerified;
@@ -63,14 +64,18 @@ class _PinEnterScreenState extends State<PinEnterScreen> {
         if (mounted && !_isDisposed) {
           Helpers.showSnackBar(context, 'تم التحقق من رمز PIN بنجاح');
 
-          // Wait a moment for the user to see the success message
           await Future.delayed(const Duration(milliseconds: 500));
 
           if (mounted && !_isDisposed) {
-            widget.onPinVerified();
+
+            widget.onPinVerified(); // Optional: call parent logic
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
           }
         }
-      } else {
+      }
+      else {
         _attemptCount++;
 
         if (mounted && !_isDisposed) {

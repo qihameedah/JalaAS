@@ -1,8 +1,11 @@
 // lib/screens/mobile/pin_setup_screen.dart
 import 'package:flutter/material.dart';
+import 'package:jala_as/screens/mobile/login_screen.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
+import 'package:get/get.dart';
+
 
 class PinSetupScreen extends StatefulWidget {
   final VoidCallback onPinSet;
@@ -109,7 +112,11 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         await Future.delayed(const Duration(seconds: 1));
 
         if (mounted && !_isDisposed) {
+
           widget.onPinSet();
+
+          Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const LoginScreen()));
         }
       }
     } catch (e) {
@@ -124,6 +131,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       if (mounted && !_isDisposed) {
         setState(() {
           _isLoading = false;
+
         });
       }
     }
