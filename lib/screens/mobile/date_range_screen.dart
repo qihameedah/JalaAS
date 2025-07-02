@@ -39,15 +39,17 @@ class _DateRangeScreenState extends State<DateRangeScreen> {
       initialDate: _fromDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      locale: const Locale('ar'),
+      // Remove hardcoded locale - let system handle it
+      // locale: const Locale('ar'),
     );
 
     if (picked != null) {
       setState(() {
         _fromDate = picked;
-        // Ensure toDate is not before fromDate
+        // Better logic: only adjust toDate if it's significantly before fromDate
         if (_toDate != null && _toDate!.isBefore(picked)) {
-          _toDate = picked;
+          // Show a warning to user instead of silently changing toDate
+          _showDateAdjustmentWarning();
         }
       });
     }
@@ -59,7 +61,8 @@ class _DateRangeScreenState extends State<DateRangeScreen> {
       initialDate: _toDate ?? DateTime.now(),
       firstDate: _fromDate ?? DateTime(2020),
       lastDate: DateTime.now(),
-      locale: const Locale('ar'),
+      // Remove hardcoded locale
+      // locale: const Locale('ar'),
     );
 
     if (picked != null) {
@@ -67,6 +70,15 @@ class _DateRangeScreenState extends State<DateRangeScreen> {
         _toDate = picked;
       });
     }
+  }
+
+  void _showDateAdjustmentWarning() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('تأكد من أن تاريخ النهاية بعد تاريخ البداية'),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
 
   void _proceed() {
@@ -105,7 +117,7 @@ class _DateRangeScreenState extends State<DateRangeScreen> {
 
     switch (period) {
       case 'today':
-        from = now;
+        from = DateTime(now.year, now.month, now.day);
         break;
       case 'week':
         from = now.subtract(const Duration(days: 7));
@@ -114,8 +126,10 @@ class _DateRangeScreenState extends State<DateRangeScreen> {
         from = DateTime(now.year, now.month, 1);
         break;
       case 'quarter':
-        final quarter = ((now.month - 1) ~/ 3) + 1;
-        from = DateTime(now.year, (quarter - 1) * 3 + 1, 1);
+      // Improved quarter calculation
+        final currentQuarter = ((now.month - 1) ~/ 3) + 1;
+        final quarterStartMonth = (currentQuarter - 1) * 3 + 1;
+        from = DateTime(now.year, quarterStartMonth, 1);
         break;
       case 'year':
         from = DateTime(now.year, 1, 1);
@@ -136,196 +150,203 @@ class _DateRangeScreenState extends State<DateRangeScreen> {
       appBar: AppBar(
         title: const Text('اختيار الفترة'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Contact Info
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'العميل المحدد:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.contact.nameAr,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'رقم العميل: ${widget.contact.code}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
 
-            const SizedBox(height: 24),
 
-            // Quick Date Selection
-            Text(
-              'اختيار سريع:',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+        //    crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Contact Info
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'العميل المحدد:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.contact.nameAr,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'رقم العميل: ${widget.contact.code}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ),
-            ),
+                ),
+              ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 24),
 
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _QuickDateChip(
-                  label: 'اليوم',
-                  onTap: () => _setQuickDate('today'),
+              // Quick Date Selection
+              Text(
+                'اختيار سريع:',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-                _QuickDateChip(
-                  label: 'آخر أسبوع',
-                  onTap: () => _setQuickDate('week'),
-                ),
-                _QuickDateChip(
-                  label: 'هذا الشهر',
-                  onTap: () => _setQuickDate('month'),
-                ),
-                _QuickDateChip(
-                  label: 'هذا الربع',
-                  onTap: () => _setQuickDate('quarter'),
-                ),
-                _QuickDateChip(
-                  label: 'هذا العام',
-                  onTap: () => _setQuickDate('year'),
-                ),
-              ],
-            ),
+              ),
 
-            const SizedBox(height: 32),
+              const SizedBox(height: 12),
 
-            // Custom Date Selection
-            Text(
-              'اختيار مخصص:',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _QuickDateChip(
+                    label: 'اليوم',
+                    onTap: () => _setQuickDate('today'),
                   ),
-            ),
+                  _QuickDateChip(
+                    label: 'آخر أسبوع',
+                    onTap: () => _setQuickDate('week'),
+                  ),
+                  _QuickDateChip(
+                    label: 'هذا الشهر',
+                    onTap: () => _setQuickDate('month'),
+                  ),
+                  _QuickDateChip(
+                    label: 'هذا الربع',
+                    onTap: () => _setQuickDate('quarter'),
+                  ),
+                  _QuickDateChip(
+                    label: 'هذا العام',
+                    onTap: () => _setQuickDate('year'),
+                  ),
+                ],
+              ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 32),
 
-            // From Date
-            InkWell(
-              onTap: _selectFromDate,
-              child: Container(
+              // Custom Date Selection
+              Text(
+                'اختيار مخصص:',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // From Date
+              InkWell(
+                onTap: _selectFromDate,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'من تاريخ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _fromDate != null
+                                ? _displayDateFormat.format(_fromDate!)
+                                : 'اختر التاريخ',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // To Date
+              InkWell(
+                onTap: _selectToDate,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'إلى تاريخ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _toDate != null
+                                ? _displayDateFormat.format(_toDate!)
+                                : 'اختر التاريخ',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const Spacer(),
+
+              // Proceed Button
+              SizedBox(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'من تاريخ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _fromDate != null
-                              ? _displayDateFormat.format(_fromDate!)
-                              : 'اختر التاريخ',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                child: ElevatedButton(
+                  onPressed:
+                  (_fromDate != null && _toDate != null) ? _proceed : null,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('عرض كشف الحساب'),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // To Date
-            InkWell(
-              onTap: _selectToDate,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'إلى تاريخ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _toDate != null
-                              ? _displayDateFormat.format(_toDate!)
-                              : 'اختر التاريخ',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const Spacer(),
-
-            // Proceed Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed:
-                    (_fromDate != null && _toDate != null) ? _proceed : null,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('عرض كشف الحساب'),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -345,19 +366,20 @@ class _QuickDateChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(AppConstants.primaryColor).withOpacity(0.1),
+          color: Theme.of(context).primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(AppConstants.primaryColor).withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withOpacity(0.3),
           ),
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            color: Color(AppConstants.primaryColor),
+          style: TextStyle(
+            color: Theme.of(context).primaryColor,
             fontWeight: FontWeight.bold,
           ),
         ),

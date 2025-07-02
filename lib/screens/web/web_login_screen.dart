@@ -23,7 +23,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   @override
   void initState() {
     super.initState();
-    _checkExistingSession(); // Check for active session on app launch
+    _checkExistingSession();
   }
 
   @override
@@ -33,31 +33,24 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     super.dispose();
   }
 
-  // Check if there is an active session and navigate to the appropriate screen
   Future<void> _checkExistingSession() async {
-    // Ensure to clear any session when the app is opened
     final currentUser = SupabaseService.currentAuthUser;
-    if (currentUser == null) {
-      return; // No user logged in
-    }
+    if (currentUser == null) return;
 
     try {
       final user = await SupabaseService.getCurrentUser();
-      if (!mounted) return; // Ensure the widget is still mounted
+      if (!mounted) return;
 
       if (user != null && user.isActive) {
         _navigateBasedOnUserType(user);
       } else {
-        // In case the user is inactive, log them out
         await SupabaseService.signOut();
       }
     } catch (e) {
-      // If there was an error, log out the user
       await SupabaseService.signOut();
     }
   }
 
-  // Handle the login logic
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -73,7 +66,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
       if (response.user != null) {
         final user = await SupabaseService.getCurrentUser();
-        if (!mounted) return; // Ensure the widget is still mounted
+        if (!mounted) return;
 
         if (user != null) {
           if (!user.isActive) {
@@ -82,15 +75,14 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
               'حسابك غير مفعل. اتصل بالمدير لتفعيل الحساب.',
               isError: true,
             );
-            await SupabaseService.signOut(); // Ensure user is logged out
+            await SupabaseService.signOut();
             return;
           }
-
           _navigateBasedOnUserType(user);
         }
       }
     } catch (e) {
-      if (!mounted) return; // Ensure the widget is still mounted
+      if (!mounted) return;
       Helpers.showSnackBar(
         context,
         'فشل في تسجيل الدخول. تحقق من بيانات الدخول.',
@@ -105,29 +97,22 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     }
   }
 
-  // Navigate to the dashboard based on user type
   void _navigateBasedOnUserType(user) {
     if (user.isAdmin) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const AdminDashboard(),
-        ),
+        MaterialPageRoute(builder: (context) => const AdminDashboard()),
       );
     } else {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => WebStatementsScreen(user: user),
-        ),
+        MaterialPageRoute(builder: (context) => WebStatementsScreen(user: user)),
       );
     }
   }
 
-  // Logout and clear session
   Future<void> _logout() async {
     await SupabaseService.signOut();
-    if (!mounted) return; // Ensure the widget is still mounted
+    if (!mounted) return;
     Helpers.showSnackBar(context, 'تم تسجيل الخروج بنجاح.');
-    // Optionally, navigate to login screen
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const WebLoginScreen()),
     );
@@ -135,9 +120,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth > 768;
-
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -153,147 +135,170 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
           ),
         ),
         child: Center(
-          child: Container(
-            width: isWideScreen ? 400 : screenWidth * 0.9,
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600,),
+              child: Container(
+                padding: EdgeInsets.all(
+                  MediaQuery.of(context).size.width < 600 ? 24.0 : 32.0,
                 ),
-              ],
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // App Logo/Title
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(AppConstants.primaryColor),
-                      borderRadius: BorderRadius.circular(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
-                    child: const Icon(
-                      Icons.account_balance,
-                      size: 48,
-                      color: Colors.white,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  Text(
-                    AppConstants.appName,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(AppConstants.primaryColor),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Text(
-                    'نظام إدارة كشوف الحسابات',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Email Field
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textDirection: TextDirection.ltr,
-                    decoration: const InputDecoration(
-                      labelText: 'البريد الإلكتروني',
-                      prefixIcon: Icon(Icons.email),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال البريد الإلكتروني';
-                      }
-                      if (!Helpers.isValidEmail(value)) {
-                        return 'البريد الإلكتروني غير صحيح';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Password Field
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    textDirection: TextDirection.ltr,
-                    decoration: InputDecoration(
-                      labelText: 'كلمة المرور',
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                  ],
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // App Logo/Title
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(AppConstants.primaryColor),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
+                        child: const Icon(
+                          Icons.account_balance,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      Text(
+                        AppConstants.appName,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: const Color(AppConstants.primaryColor),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'نظام إدارة كشوف الحسابات',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Email Field
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textDirection: TextDirection.ltr,
+                        decoration: const InputDecoration(
+                          labelText: 'البريد الإلكتروني',
+                          prefixIcon: Icon(Icons.email),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'يرجى إدخال البريد الإلكتروني';
+                          }
+                          if (!Helpers.isValidEmail(value)) {
+                            return 'البريد الإلكتروني غير صحيح';
+                          }
+                          return null;
                         },
                       ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال كلمة المرور';
-                      }
-                      if (value.length < 6) {
-                        return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
-                      }
-                      return null;
-                    },
-                  ),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
-                  // Login Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _login,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      // Password Field
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        textDirection: TextDirection.ltr,
+                        decoration: InputDecoration(
+                          labelText: 'كلمة المرور',
+                          prefixIcon: const Icon(Icons.lock),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'يرجى إدخال كلمة المرور';
+                          }
+                          if (value.length < 6) {
+                            return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                          }
+                          return null;
+                        },
                       ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(
-                        valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.white),
-                      )
-                          : const Text('تسجيل الدخول'),
-                    ),
-                  ),
 
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 24),
 
-                  // Footer
-                  Text(
-                    '© 2025 جميع الحقوق محفوظة',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
-                    textAlign: TextAlign.center,
+                      // Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: const Color(AppConstants.primaryColor),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : const Text(
+                            'تسجيل الدخول',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Footer
+                      Text(
+                        '© 2025 جميع الحقوق محفوظة',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

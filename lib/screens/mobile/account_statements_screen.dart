@@ -155,77 +155,82 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Contact Info Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: Colors.blue[50],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  ArabicTextHelper.cleanText(widget.contact.nameAr),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'رقم العميل: ${widget.contact.code}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Text(
-                  'الفترة: ${Helpers.formatDisplayDate(DateTime.parse(widget.fromDate))} - ${Helpers.formatDisplayDate(DateTime.parse(widget.toDate))}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Content
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _statements.isEmpty
-                ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'لا توجد حركات في هذه الفترة',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            children: [
+              // Contact Info Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Colors.blue[50],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ArabicTextHelper.cleanText(widget.contact.nameAr),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: _loadStatements,
-                    child: const Text('إعادة التحميل'),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'رقم العميل: ${widget.contact.code}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    Text(
+                      'الفترة: ${Helpers.formatDisplayDate(DateTime.parse(widget.fromDate))} - ${Helpers.formatDisplayDate(DateTime.parse(widget.toDate))}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )
-                : _isCardView
-                ? _buildCardView()
-                : _buildTableView(),
+
+              // Content
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _statements.isEmpty
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'لا توجد حركات في هذه الفترة',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _loadStatements,
+                        child: const Text('إعادة التحميل'),
+                      ),
+                    ],
+                  ),
+                )
+                    : _isCardView
+                    ? _buildCardView()
+                    : _buildTableView(),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

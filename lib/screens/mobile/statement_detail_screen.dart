@@ -133,23 +133,28 @@ class _StatementDetailScreenState extends State<StatementDetailScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _details.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.description_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.description_outlined,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'لا توجد تفاصيل لهذا المستند',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'لا توجد تفاصيل لهذا المستند',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 )
               : _buildContent(),
