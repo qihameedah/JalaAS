@@ -1,6 +1,5 @@
 // lib/screens/mobile/no_internet_screen.dart
 import 'package:flutter/material.dart';
-import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 
 class NoInternetScreen extends StatefulWidget {

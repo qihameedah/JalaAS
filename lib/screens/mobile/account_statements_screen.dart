@@ -39,6 +39,7 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
     _loadStatements();
   }
 
+  // Load the account statements from the API
   Future<void> _loadStatements() async {
     setState(() {
       _isLoading = true;
@@ -59,14 +60,17 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
       setState(() {
         _isLoading = false;
       });
-      Helpers.showSnackBar(
-        context,
-        'فشل في تحميل كشف الحساب: ${e.toString()}',
-        isError: true,
-      );
+      if (mounted) { // Check if the widget is still mounted
+        Helpers.showSnackBar(
+          context,
+          'فشل في تحميل كشف الحساب: ${e.toString()}',
+          isError: true,
+        );
+      }
     }
   }
 
+  // Generate PDF of the account statements
   Future<void> _generatePdf() async {
     setState(() {
       _isGeneratingPdf = true;
@@ -83,21 +87,26 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
       await Printing.layoutPdf(
         onLayout: (format) async => pdfBytes,
         name:
-            'كشف_حساب_${widget.contact.code}_${widget.fromDate}_${widget.toDate}.pdf',
+        'كشف_حساب_${widget.contact.code}_${widget.fromDate}_${widget.toDate}.pdf',
       );
     } catch (e) {
-      Helpers.showSnackBar(
-        context,
-        'فشل في إنشاء ملف PDF: ${e.toString()}',
-        isError: true,
-      );
+      if (mounted) { // Check if the widget is still mounted
+        Helpers.showSnackBar(
+          context,
+          'فشل في إنشاء ملف PDF: ${e.toString()}',
+          isError: true,
+        );
+      }
     } finally {
-      setState(() {
-        _isGeneratingPdf = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isGeneratingPdf = false;
+        });
+      }
     }
   }
 
+  // View the details of a specific statement
   void _viewStatementDetail(AccountStatement statement) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -130,11 +139,11 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
             IconButton(
               icon: _isGeneratingPdf
                   ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
                   : const Icon(Icons.picture_as_pdf),
               onPressed: _isGeneratingPdf ? null : _generatePdf,
               tooltip: 'إنشاء PDF',
@@ -187,34 +196,34 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _statements.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'لا توجد حركات في هذه الفترة',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _loadStatements,
-                              child: const Text('إعادة التحميل'),
-                            ),
-                          ],
-                        ),
-                      )
-                    : _isCardView
-                        ? _buildCardView()
-                        : _buildTableView(),
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'لا توجد حركات في هذه الفترة',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _loadStatements,
+                    child: const Text('إعادة التحميل'),
+                  ),
+                ],
+              ),
+            )
+                : _isCardView
+                ? _buildCardView()
+                : _buildTableView(),
           ),
         ],
       ),
@@ -374,12 +383,11 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       if (statement.documentType != 'other')
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Colors.grey[400],
-                      ),
-
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.grey[400],
+                        ),
                     ],
                   ),
                 ],
@@ -455,6 +463,7 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
     );
   }
 
+  // Get color for the document type
   Color _getDocumentTypeColor(String documentType) {
     switch (documentType) {
       case 'invoice':

@@ -4,7 +4,6 @@ import 'package:jala_as/screens/mobile/login_screen.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
-import 'package:get/get.dart';
 
 
 class PinSetupScreen extends StatefulWidget {
@@ -37,8 +36,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 
   void _onPinChanged(String value) {
-    if (!mounted || _isDisposed)
+    if (!mounted || _isDisposed) {
       return; // Check if widget is still mounted and not disposed
+    }
 
     setState(() {
       if (_isSettingPin) {
@@ -58,8 +58,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 
   void _proceedToConfirmation() {
-    if (!mounted || _isDisposed)
+    if (!mounted || _isDisposed) {
       return; // Check if widget is still mounted and not disposed
+    }
 
     setState(() {
       _isSettingPin = false;
@@ -81,8 +82,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 
   Future<void> _validateAndSavePin() async {
-    if (!mounted || _isDisposed)
+    if (!mounted || _isDisposed) {
       return; // Check if widget is still mounted and not disposed
+    }
 
     if (_currentPin != _confirmPin) {
       if (mounted && !_isDisposed) {
@@ -138,8 +140,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 
   void _resetToStart() {
-    if (!mounted || _isDisposed)
+    if (!mounted || _isDisposed) {
       return; // Check if widget is still mounted and not disposed
+    }
 
     setState(() {
       _isSettingPin = true;

@@ -1,4 +1,3 @@
-// lib/screens/mobile/pin_enter_screen.dart
 import 'package:flutter/material.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../utils/constants.dart';
@@ -18,23 +17,16 @@ class PinEnterScreen extends StatefulWidget {
 }
 
 class _PinEnterScreenState extends State<PinEnterScreen> {
-  final TextEditingController _pinController = TextEditingController();
   String _enteredPin = '';
   bool _isLoading = false;
   int _attemptCount = 0;
   static const int _maxAttempts = 3;
-  bool _isDisposed = false;
 
-  @override
-  void dispose() {
-    _isDisposed = true;
-    _pinController.dispose();
-    super.dispose();
-  }
+  // Key to force rebuild of PinCodeTextField when needed
+  Key _pinFieldKey = UniqueKey();
 
   void _onPinChanged(String value) {
-    if (!mounted || _isDisposed)
-      return; // Check if widget is still mounted and not disposed
+    if (!mounted) return;
 
     setState(() {
       _enteredPin = value;
@@ -45,9 +37,17 @@ class _PinEnterScreenState extends State<PinEnterScreen> {
     }
   }
 
+  void _clearPin() {
+    if (!mounted) return;
+
+    setState(() {
+      _enteredPin = '';
+      _pinFieldKey = UniqueKey(); // Force rebuild to clear the field
+    });
+  }
+
   Future<void> _verifyPin() async {
-    if (!mounted || _isDisposed)
-      return; // Check if widget is still mounted and not disposed
+    if (!mounted) return;
 
     setState(() {
       _isLoading = true;
@@ -56,57 +56,47 @@ class _PinEnterScreenState extends State<PinEnterScreen> {
     try {
       final storedPin = await Helpers.getPinCode();
 
-      if (!mounted || _isDisposed) return; // Check again after async operation
+      if (!mounted) return;
 
       if (storedPin == _enteredPin) {
         await Helpers.updateLastActiveTime();
 
-        if (mounted && !_isDisposed) {
-          Helpers.showSnackBar(context, 'تم التحقق من رمز PIN بنجاح');
+        if (!mounted) return;
 
-          await Future.delayed(const Duration(milliseconds: 500));
+        Helpers.showSnackBar(context, 'تم التحقق من رمز PIN بنجاح');
 
-          if (mounted && !_isDisposed) {
+        await Future.delayed(const Duration(milliseconds: 500));
 
-            widget.onPinVerified(); // Optional: call parent logic
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
-          }
-        }
-      }
-      else {
+        if (!mounted) return;
+
+        widget.onPinVerified();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
         _attemptCount++;
 
-        if (mounted && !_isDisposed) {
-          if (_attemptCount >= _maxAttempts) {
-            Helpers.showSnackBar(
-              context,
-              'تم تجاوز عدد المحاولات المسموح. يرجى إعادة تشغيل التطبيق.',
-              isError: true,
-            );
+        if (!mounted) return;
 
-            // Exit the app or take appropriate action
-            // In a real app, you might want to implement a lockout period
-          } else {
-            Helpers.showSnackBar(
-              context,
-              'رمز PIN غير صحيح. المحاولات المتبقية: ${_maxAttempts - _attemptCount}',
-              isError: true,
-            );
+        if (_attemptCount >= _maxAttempts) {
+          Helpers.showSnackBar(
+            context,
+            'تم تجاوز عدد المحاولات المسموح. يرجى إعادة تشغيل التطبيق.',
+            isError: true,
+          );
+        } else {
+          Helpers.showSnackBar(
+            context,
+            'رمز PIN غير صحيح. المحاولات المتبقية: ${_maxAttempts - _attemptCount}',
+            isError: true,
+          );
 
-            // Only clear controller if not disposed
-            if (!_isDisposed) {
-              _pinController.clear();
-            }
-            setState(() {
-              _enteredPin = '';
-            });
-          }
+          // Clear the PIN by rebuilding the widget
+          _clearPin();
         }
       }
     } catch (e) {
-      if (mounted && !_isDisposed) {
+      if (mounted) {
         Helpers.showSnackBar(
           context,
           'خطأ في التحقق من رمز PIN. حاول مرة أخرى.',
@@ -114,7 +104,7 @@ class _PinEnterScreenState extends State<PinEnterScreen> {
         );
       }
     } finally {
-      if (mounted && !_isDisposed) {
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
@@ -131,7 +121,6 @@ class _PinEnterScreenState extends State<PinEnterScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // App Logo/Title
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -144,78 +133,62 @@ class _PinEnterScreenState extends State<PinEnterScreen> {
                   color: Colors.white,
                 ),
               ),
-
               const SizedBox(height: 32),
-
               Text(
                 AppConstants.appName,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(AppConstants.primaryColor),
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: const Color(AppConstants.primaryColor),
+                ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 48),
-
               Text(
                 'أدخل رمز PIN',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 16),
-
               Text(
                 'أدخل رمز PIN المكون من ${AppConstants.pinLength} أرقام للمتابعة',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                  color: Colors.grey[600],
+                ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 32),
-
-              // PIN Input Field
               Directionality(
                 textDirection: TextDirection.ltr,
-                child: _isDisposed
-                    ? const SizedBox()
-                    : // Return empty widget if disposed
-                    PinCodeTextField(
-                        appContext: context,
-                        length: AppConstants.pinLength,
-                        controller: _pinController,
-                        onChanged: _onPinChanged,
-                        keyboardType: TextInputType.number,
-                        obscureText: true,
-                        obscuringCharacter: '●',
-                        animationType: AnimationType.fade,
-                        pinTheme: PinTheme(
-                          shape: PinCodeFieldShape.box,
-                          borderRadius: BorderRadius.circular(8),
-                          fieldHeight: 60,
-                          fieldWidth: 50,
-                          activeFillColor: Colors.white,
-                          inactiveFillColor: Colors.grey[100],
-                          selectedFillColor: Colors.white,
-                          activeColor: const Color(AppConstants.primaryColor),
-                          inactiveColor: Colors.grey[300],
-                          selectedColor: const Color(AppConstants.primaryColor),
-                        ),
-                        enableActiveFill: true,
-                        autoFocus: true,
-                      ),
+                child: PinCodeTextField(
+                  key: _pinFieldKey,
+                  appContext: context,
+                  length: AppConstants.pinLength,
+                  onChanged: _onPinChanged,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  obscuringCharacter: '●',
+                  animationType: AnimationType.fade,
+                  pinTheme: PinTheme(
+                    shape: PinCodeFieldShape.box,
+                    borderRadius: BorderRadius.circular(8),
+                    fieldHeight: 60,
+                    fieldWidth: 50,
+                    activeFillColor: Colors.white,
+                    inactiveFillColor: Colors.grey[100],
+                    selectedFillColor: Colors.white,
+                    activeColor: const Color(AppConstants.primaryColor),
+                    inactiveColor: Colors.grey[300],
+                    selectedColor: const Color(AppConstants.primaryColor),
+                  ),
+                  enableActiveFill: true,
+                  autoFocus: true,
+                ),
               ),
-
               const SizedBox(height: 32),
-
               if (_isLoading) const CircularProgressIndicator(),
-
               const SizedBox(height: 32),
-
               if (_attemptCount > 0)
                 Container(
                   padding: const EdgeInsets.all(16),

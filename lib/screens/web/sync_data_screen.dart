@@ -1,6 +1,5 @@
 // lib/screens/web/sync_data_screen.dart
 import 'package:flutter/material.dart';
-import '../../models/contact.dart';
 import '../../services/api_service.dart';
 import '../../services/supabase_service.dart';
 import '../../utils/constants.dart';
@@ -135,9 +134,9 @@ class _SyncDataScreenState extends State<SyncDataScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.people,
-                                color: const Color(AppConstants.primaryColor),
+                                color: Color(AppConstants.primaryColor),
                                 size: 32,
                               ),
                               const SizedBox(width: 12),
@@ -226,9 +225,9 @@ class _SyncDataScreenState extends State<SyncDataScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.sync,
-                          color: const Color(AppConstants.primaryColor),
+                          color: Color(AppConstants.primaryColor),
                           size: 32,
                         ),
                         const SizedBox(width: 12),
@@ -272,8 +271,8 @@ class _SyncDataScreenState extends State<SyncDataScreen> {
                       const SizedBox(height: 16),
                       LinearProgressIndicator(
                         backgroundColor: Colors.grey[300],
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          const Color(AppConstants.primaryColor),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(AppConstants.primaryColor),
                         ),
                       ),
                     ] else ...[

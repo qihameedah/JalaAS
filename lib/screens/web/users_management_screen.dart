@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../services/supabase_service.dart';
-import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 
 class UsersManagementScreen extends StatefulWidget {
@@ -15,7 +14,7 @@ class UsersManagementScreen extends StatefulWidget {
 class _UsersManagementScreenState extends State<UsersManagementScreen> {
   List<AppUser> _users = [];
   bool _isLoading = true;
-  bool _isCreatingUser = false;
+  final bool _isCreatingUser = false;
 
   @override
   void initState() {

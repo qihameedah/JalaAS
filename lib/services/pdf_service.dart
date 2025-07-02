@@ -156,7 +156,7 @@ class PdfService {
                         _buildTableCell(index.toString(), arabicFont),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ],
@@ -344,7 +344,7 @@ class PdfService {
                           _buildTableCell(index.toString(), arabicFont),
                         ],
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
 

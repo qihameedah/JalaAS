@@ -330,7 +330,7 @@ class _StatementDetailScreenState extends State<StatementDetailScreen> {
               scrollDirection: Axis.horizontal,
               child: DataTable(
                 columnSpacing: 20,
-                headingRowColor: MaterialStateProperty.all(Colors.grey[200]),
+                headingRowColor: WidgetStateProperty.all(Colors.grey[200]),
                 columns: const [
                   DataColumn(label: Text('#')),
                   DataColumn(label: Text('رقم الصنف')),

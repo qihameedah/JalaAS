@@ -23,7 +23,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   @override
   void initState() {
     super.initState();
-    _checkExistingSession();
+    _checkExistingSession(); // Check for active session on app launch
   }
 
   @override
@@ -33,19 +33,31 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     super.dispose();
   }
 
+  // Check if there is an active session and navigate to the appropriate screen
   Future<void> _checkExistingSession() async {
-    if (SupabaseService.currentAuthUser != null) {
-      try {
-        final user = await SupabaseService.getCurrentUser();
-        if (user != null && user.isActive) {
-          _navigateBasedOnUserType(user);
-        }
-      } catch (e) {
-        // Continue to login screen
+    // Ensure to clear any session when the app is opened
+    final currentUser = SupabaseService.currentAuthUser;
+    if (currentUser == null) {
+      return; // No user logged in
+    }
+
+    try {
+      final user = await SupabaseService.getCurrentUser();
+      if (!mounted) return; // Ensure the widget is still mounted
+
+      if (user != null && user.isActive) {
+        _navigateBasedOnUserType(user);
+      } else {
+        // In case the user is inactive, log them out
+        await SupabaseService.signOut();
       }
+    } catch (e) {
+      // If there was an error, log out the user
+      await SupabaseService.signOut();
     }
   }
 
+  // Handle the login logic
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -61,6 +73,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
       if (response.user != null) {
         final user = await SupabaseService.getCurrentUser();
+        if (!mounted) return; // Ensure the widget is still mounted
 
         if (user != null) {
           if (!user.isActive) {
@@ -69,7 +82,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
               'حسابك غير مفعل. اتصل بالمدير لتفعيل الحساب.',
               isError: true,
             );
-            await SupabaseService.signOut();
+            await SupabaseService.signOut(); // Ensure user is logged out
             return;
           }
 
@@ -77,18 +90,22 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
         }
       }
     } catch (e) {
+      if (!mounted) return; // Ensure the widget is still mounted
       Helpers.showSnackBar(
         context,
         'فشل في تسجيل الدخول. تحقق من بيانات الدخول.',
         isError: true,
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
+  // Navigate to the dashboard based on user type
   void _navigateBasedOnUserType(user) {
     if (user.isAdmin) {
       Navigator.of(context).pushReplacement(
@@ -103,6 +120,17 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
         ),
       );
     }
+  }
+
+  // Logout and clear session
+  Future<void> _logout() async {
+    await SupabaseService.signOut();
+    if (!mounted) return; // Ensure the widget is still mounted
+    Helpers.showSnackBar(context, 'تم تسجيل الخروج بنجاح.');
+    // Optionally, navigate to login screen
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const WebLoginScreen()),
+    );
   }
 
   @override
@@ -163,9 +191,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                   Text(
                     AppConstants.appName,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(AppConstants.primaryColor),
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: const Color(AppConstants.primaryColor),
+                    ),
                     textAlign: TextAlign.center,
                   ),
 
@@ -174,8 +202,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                   Text(
                     'نظام إدارة كشوف الحسابات',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                      color: Colors.grey[600],
+                    ),
                     textAlign: TextAlign.center,
                   ),
 
@@ -247,9 +275,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       ),
                       child: _isLoading
                           ? const CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            )
+                        valueColor:
+                        AlwaysStoppedAnimation<Color>(Colors.white),
+                      )
                           : const Text('تسجيل الدخول'),
                     ),
                   ),
