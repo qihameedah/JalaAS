@@ -56,6 +56,7 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
         _statements = statements;
         _isLoading = false;
       });
+
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -89,6 +90,7 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
         name:
         'كشف_حساب_${widget.contact.code}_${widget.fromDate}_${widget.toDate}.pdf',
       );
+
     } catch (e) {
       if (mounted) { // Check if the widget is still mounted
         Helpers.showSnackBar(

@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/contact.dart';
-import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import 'account_statements_screen.dart';
 

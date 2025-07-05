@@ -280,7 +280,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
               const SizedBox(height: 48),
 
               Text(
-                'سيتم طلب رمز PIN عند فتح التطبيق أو بعد عدم الاستخدام لمدة ${AppConstants.backgroundTimeoutMinutes} دقائق',
+                "سيتم طلب رمز PIN عند فتح التطبيق أو بعد عدم الاستخدام لمدة ${AppConstants.backgroundTimeoutMinutes} دقائق",
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey[500],
                     ),

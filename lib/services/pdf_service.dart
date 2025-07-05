@@ -9,17 +9,53 @@ import '../models/account_statement.dart';
 import '../utils/arabic_text_helper.dart';
 
 class PdfService {
+  // Cache fonts to avoid loading them multiple times
+  static pw.Font? _arabicFont;
+  static pw.Font? _arabicBoldFont;
+  static pw.Font? _englishFont;
+  static pw.Font? _englishBoldFont;
+
+  static Future<void> _loadFonts() async {
+    if (_arabicFont == null) {
+      _arabicFont = await PdfGoogleFonts.notoSansArabicRegular();
+      _arabicBoldFont = await PdfGoogleFonts.notoSansArabicBold();
+      _englishFont = await PdfGoogleFonts.robotoRegular();
+      _englishBoldFont = await PdfGoogleFonts.robotoBold();
+    }
+  }
+
+  static pw.TextStyle _getTextStyle({
+    required String text,
+    bool isBold = false,
+    double fontSize = 12,
+  }) {
+    // Check if text contains Arabic characters
+    final hasArabic = RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+
+    return pw.TextStyle(
+      font: hasArabic
+          ? (isBold ? _arabicBoldFont! : _arabicFont!)
+          : (isBold ? _englishBoldFont! : _englishFont!),
+      fontSize: fontSize,
+      fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+      fontFallback: [
+        _arabicFont!,
+        _englishFont!,
+        _arabicBoldFont!,
+        _englishBoldFont!,
+      ],
+    );
+  }
+
   static Future<Uint8List> generateAccountStatementPdf({
     required Contact contact,
     required List<AccountStatement> statements,
     required String fromDate,
     required String toDate,
   }) async {
-    final pdf = pw.Document();
+    await _loadFonts();
 
-    // Load Arabic font
-    final arabicFont = await PdfGoogleFonts.notoSansArabicRegular();
-    final arabicBoldFont = await PdfGoogleFonts.notoSansArabicBold();
+    final pdf = pw.Document();
 
     pdf.addPage(
       pw.Page(
@@ -32,7 +68,7 @@ class PdfService {
               // Header
               pw.Container(
                 width: double.infinity,
-                padding: const pw.EdgeInsets.all(20),
+                padding: const pw.EdgeInsets.all(5),
                 decoration: const pw.BoxDecoration(
                   color: PdfColors.grey200,
                 ),
@@ -41,20 +77,21 @@ class PdfService {
                   children: [
                     pw.Text(
                       'كشف الحساب - ${ArabicTextHelper.cleanText(contact.nameAr)}',
-                      style: pw.TextStyle(
-                        font: arabicBoldFont,
+                      style: _getTextStyle(
+                        text: 'كشف الحساب - ${ArabicTextHelper.cleanText(contact.nameAr)}',
+                        isBold: true,
                         fontSize: 18,
                       ),
-                      textDirection: pw.TextDirection.rtl,
                     ),
-                    pw.SizedBox(height: 10),
+
+                    pw.SizedBox(height: 5),
+
                     pw.Text(
                       'التاريخ: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
-                      style: pw.TextStyle(
-                        font: arabicFont,
+                      style: _getTextStyle(
+                        text: 'التاريخ: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
                         fontSize: 12,
                       ),
-                      textDirection: pw.TextDirection.rtl,
                     ),
                   ],
                 ),
@@ -73,26 +110,34 @@ class PdfService {
                   children: [
                     pw.Text(
                       'رقم العميل: ${contact.code}',
-                      style: pw.TextStyle(font: arabicFont, fontSize: 12),
-                      textDirection: pw.TextDirection.rtl,
+                      style: _getTextStyle(
+                        text: 'رقم العميل: ${contact.code}',
+                        fontSize: 12,
+                      ),
                     ),
                     if (contact.streetAddress?.isNotEmpty == true)
                       pw.Text(
                         'العنوان: ${ArabicTextHelper.cleanText(contact.streetAddress!)}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 12),
-                        textDirection: pw.TextDirection.rtl,
+                        style: _getTextStyle(
+                          text: 'العنوان: ${ArabicTextHelper.cleanText(contact.streetAddress!)}',
+                          fontSize: 12,
+                        ),
                       ),
                     if (contact.taxId?.isNotEmpty == true)
                       pw.Text(
                         'الرقم الضريبي: ${contact.taxId}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 12),
-                        textDirection: pw.TextDirection.rtl,
+                        style: _getTextStyle(
+                          text: 'الرقم الضريبي: ${contact.taxId}',
+                          fontSize: 12,
+                        ),
                       ),
                     if (contact.phone?.isNotEmpty == true)
                       pw.Text(
-                        'الهاتف: ${contact.phone}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 12),
-                        textDirection: pw.TextDirection.rtl,
+                        'الهاتف: ${_formatPhoneNumber(contact.phone!)}',
+                        style: _getTextStyle(
+                          text: 'الهاتف: ${_formatPhoneNumber(contact.phone!)}',
+                          fontSize: 12,
+                        ),
                       ),
                   ],
                 ),
@@ -100,32 +145,32 @@ class PdfService {
 
               pw.SizedBox(height: 20),
 
-              // Table
+              // Table with LTR column order
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey400),
                 columnWidths: {
-                  0: const pw.FixedColumnWidth(30),
-                  1: const pw.FlexColumnWidth(2),
-                  2: const pw.FlexColumnWidth(1),
-                  3: const pw.FlexColumnWidth(1),
-                  4: const pw.FlexColumnWidth(1),
-                  5: const pw.FlexColumnWidth(1),
+
+                  0: const pw.FlexColumnWidth(1),      // الرصيد الجاري
+                  1: const pw.FlexColumnWidth(1),      // دائن
+                  2: const pw.FlexColumnWidth(1),      // مدين
+                  3: const pw.FlexColumnWidth(1),      // المستند
+                  4: const pw.FlexColumnWidth(1),      // التاريخ
+                  5: const pw.FixedColumnWidth(30),    // #
+
                 },
                 children: [
-                  // Header
+
                   pw.TableRow(
-                    decoration:
-                        const pw.BoxDecoration(color: PdfColors.grey200),
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                     children: [
-                      _buildTableCell('الرصيد الجاري', arabicBoldFont,
-                          isHeader: true),
-                      _buildTableCell('دائن', arabicBoldFont, isHeader: true),
-                      _buildTableCell('مدين', arabicBoldFont, isHeader: true),
-                      _buildTableCell('المستند', arabicBoldFont,
-                          isHeader: true),
-                      _buildTableCell('التاريخ', arabicBoldFont,
-                          isHeader: true),
-                      _buildTableCell('#', arabicBoldFont, isHeader: true),
+
+                      _buildTableCell('الرصيد الجاري', isHeader: true),
+                      _buildTableCell('دائن', isHeader: true),
+                      _buildTableCell('مدين', isHeader: true),
+                      _buildTableCell('المستند', isHeader: true),
+                      _buildTableCell('التاريخ', isHeader: true),
+                      _buildTableCell('#', isHeader: true),
+
                     ],
                   ),
 
@@ -136,24 +181,14 @@ class PdfService {
 
                     return pw.TableRow(
                       children: [
-                        _buildTableCell(
-                          _formatNumber(statement.runningBalance),
-                          arabicFont,
-                        ),
-                        _buildTableCell(
-                          _formatNumber(statement.credit),
-                          arabicFont,
-                        ),
-                        _buildTableCell(
-                          _formatNumber(statement.debit),
-                          arabicFont,
-                        ),
-                        _buildTableCell(
-                          ArabicTextHelper.cleanText(statement.displayName),
-                          arabicFont,
-                        ),
-                        _buildTableCell(statement.docDate, arabicFont),
-                        _buildTableCell(index.toString(), arabicFont),
+
+                        _buildTableCell(_formatNumber(statement.runningBalance)),
+                        _buildTableCell(_formatNumber(statement.credit)),
+                        _buildTableCell(_formatNumber(statement.debit)),
+                        _buildTableCell(ArabicTextHelper.cleanText(statement.displayName)),
+                        _buildTableCell(statement.docDate),
+                        _buildTableCell(index.toString()),
+
                       ],
                     );
                   }),
@@ -173,11 +208,9 @@ class PdfService {
     required List<AccountStatementDetail> details,
     required String documentTitle,
   }) async {
-    final pdf = pw.Document();
+    await _loadFonts();
 
-    // Load Arabic font
-    final arabicFont = await PdfGoogleFonts.notoSansArabicRegular();
-    final arabicBoldFont = await PdfGoogleFonts.notoSansArabicBold();
+    final pdf = pw.Document();
 
     // Calculate totals
     double totalAmount = 0;
@@ -217,29 +250,27 @@ class PdfService {
                   children: [
                     pw.Text(
                       ArabicTextHelper.cleanText(documentTitle),
-                      style: pw.TextStyle(
-                        font: arabicBoldFont,
+                      style: _getTextStyle(
+                        text: ArabicTextHelper.cleanText(documentTitle),
+                        isBold: true,
                         fontSize: 18,
                       ),
-                      textDirection: pw.TextDirection.rtl,
                     ),
                     pw.SizedBox(height: 5),
                     pw.Text(
                       ArabicTextHelper.cleanText(contact.nameAr),
-                      style: pw.TextStyle(
-                        font: arabicFont,
+                      style: _getTextStyle(
+                        text: ArabicTextHelper.cleanText(contact.nameAr),
                         fontSize: 14,
                       ),
-                      textDirection: pw.TextDirection.rtl,
                     ),
                     pw.SizedBox(height: 10),
                     pw.Text(
                       'التاريخ: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
-                      style: pw.TextStyle(
-                        font: arabicFont,
+                      style: _getTextStyle(
+                        text: 'التاريخ: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
                         fontSize: 12,
                       ),
-                      textDirection: pw.TextDirection.rtl,
                     ),
                   ],
                 ),
@@ -258,26 +289,34 @@ class PdfService {
                   children: [
                     pw.Text(
                       'رقم العميل: ${contact.code}',
-                      style: pw.TextStyle(font: arabicFont, fontSize: 12),
-                      textDirection: pw.TextDirection.rtl,
+                      style: _getTextStyle(
+                        text: 'رقم العميل: ${contact.code}',
+                        fontSize: 12,
+                      ),
                     ),
                     if (contact.streetAddress?.isNotEmpty == true)
                       pw.Text(
                         'العنوان: ${ArabicTextHelper.cleanText(contact.streetAddress!)}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 12),
-                        textDirection: pw.TextDirection.rtl,
+                        style: _getTextStyle(
+                          text: 'العنوان: ${ArabicTextHelper.cleanText(contact.streetAddress!)}',
+                          fontSize: 12,
+                        ),
                       ),
                     if (contact.taxId?.isNotEmpty == true)
                       pw.Text(
                         'الرقم الضريبي: ${contact.taxId}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 12),
-                        textDirection: pw.TextDirection.rtl,
+                        style: _getTextStyle(
+                          text: 'الرقم الضريبي: ${contact.taxId}',
+                          fontSize: 12,
+                        ),
                       ),
                     if (contact.phone?.isNotEmpty == true)
                       pw.Text(
-                        'الهاتف: ${contact.phone}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 12),
-                        textDirection: pw.TextDirection.rtl,
+                        'الهاتف: ${_formatPhoneNumber(contact.phone!)}',
+                        style: _getTextStyle(
+                          text: 'الهاتف: ${_formatPhoneNumber(contact.phone!)}',
+                          fontSize: 12,
+                        ),
                       ),
                   ],
                 ),
@@ -285,35 +324,40 @@ class PdfService {
 
               pw.SizedBox(height: 20),
 
-              // Items table
+              // Items table with LTR column order
               if (items.isNotEmpty) ...[
                 pw.Table(
+                  defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
                   border: pw.TableBorder.all(color: PdfColors.grey400),
                   columnWidths: {
-                    0: const pw.FixedColumnWidth(30),
-                    1: const pw.FlexColumnWidth(1),
-                    2: const pw.FlexColumnWidth(3),
-                    3: const pw.FlexColumnWidth(1),
-                    4: const pw.FlexColumnWidth(1),
-                    5: const pw.FlexColumnWidth(1),
+
+                    5: const pw.FixedColumnWidth(30),    // #
+                    4: const pw.FlexColumnWidth(1.5),      // رقم الصنف
+                    3: const pw.FlexColumnWidth(3),      // اسم الصنف
+                    2: const pw.FlexColumnWidth(1),      // الكمية
+                    1: const pw.FlexColumnWidth(1),      // السعر
+                    0: const pw.FlexColumnWidth(1),
+                    // المبلغ
                   },
                   children: [
-                    // Header
+                    // Header - arranged left to right
                     pw.TableRow(
-                      decoration:
-                          const pw.BoxDecoration(color: PdfColors.grey200),
+
+                      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                       children: [
-                        _buildTableCell('المبلغ', arabicBoldFont,
-                            isHeader: true),
-                        _buildTableCell('السعر', arabicBoldFont,
-                            isHeader: true),
-                        _buildTableCell('الكمية', arabicBoldFont,
-                            isHeader: true),
-                        _buildTableCell('اسم الصنف', arabicBoldFont,
-                            isHeader: true),
-                        _buildTableCell('رقم الصنف', arabicBoldFont,
-                            isHeader: true),
-                        _buildTableCell('#', arabicBoldFont, isHeader: true),
+
+                        _buildTableCell('المجموع', isHeader: true),
+
+                        _buildTableCell('السعر', isHeader: true),
+
+                        _buildTableCell('الكمية', isHeader: true),
+
+                        _buildTableCell('اسم الصنف', isHeader: true),
+
+                        _buildTableCell('رقم الصنف', isHeader: true),
+
+                        _buildTableCell('#', isHeader: true),
+
                       ],
                     ),
 
@@ -324,24 +368,19 @@ class PdfService {
 
                       return pw.TableRow(
                         children: [
-                          _buildTableCell(
-                            _formatNumber(item.amount),
-                            arabicFont,
-                          ),
-                          _buildTableCell(
-                            _formatNumber(item.price),
-                            arabicFont,
-                          ),
-                          _buildTableCell(
-                            '${_formatNumber(item.quantity)} ${item.unit}',
-                            arabicFont,
-                          ),
-                          _buildTableCell(
-                            ArabicTextHelper.cleanText(item.name),
-                            arabicFont,
-                          ),
-                          _buildTableCell(item.item, arabicFont),
-                          _buildTableCell(index.toString(), arabicFont),
+
+                          _buildTableCell(_formatNumber(item.amount)),
+
+                          _buildTableCell(_formatNumber(item.price)),
+
+                          _buildTableCell('${_formatNumber(item.quantity)} ${item.unit}'),
+
+                          _buildTableCell(ArabicTextHelper.cleanText(item.name)),
+
+                          _buildTableCell(item.item),
+
+                          _buildTableCell(index.toString()),
+
                         ],
                       );
                     }),
@@ -357,33 +396,50 @@ class PdfService {
                     border: pw.Border.all(color: PdfColors.grey400),
                   ),
                   child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
                         'المجموع: ${_formatNumber(totalAmount.toString())}',
-                        style: pw.TextStyle(font: arabicBoldFont, fontSize: 12),
+                        style: _getTextStyle(
+                          text: 'المجموع: ${_formatNumber(totalAmount.toString())}',
+                          isBold: true,
+                          fontSize: 12,
+                        ),
                         textDirection: pw.TextDirection.rtl,
                       ),
                       if (tax > 0)
                         pw.Text(
                           'ضريبة ال 16%: ${_formatNumber(tax.toString())}',
-                          style: pw.TextStyle(font: arabicFont, fontSize: 12),
+                          style: _getTextStyle(
+                            text: 'ضريبة ال 16%: ${_formatNumber(tax.toString())}',
+                            fontSize: 12,
+                          ),
                           textDirection: pw.TextDirection.rtl,
                         ),
                       if (discount != 0)
                         pw.Text(
                           'الخصم: ${_formatNumber(discount.toString())}',
-                          style: pw.TextStyle(font: arabicFont, fontSize: 12),
+                          style: _getTextStyle(
+                            text: 'الخصم: ${_formatNumber(discount.toString())}',
+                            fontSize: 12,
+                          ),
                           textDirection: pw.TextDirection.rtl,
                         ),
                       pw.Text(
                         'بعد الخصم: ${_formatNumber(afterDiscount.toString())}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 12),
+                        style: _getTextStyle(
+                          text: 'بعد الخصم: ${_formatNumber(afterDiscount.toString())}',
+                          fontSize: 12,
+                        ),
                         textDirection: pw.TextDirection.rtl,
                       ),
                       pw.Text(
                         'الصافي: ${_formatNumber(netAmount.toString())}',
-                        style: pw.TextStyle(font: arabicBoldFont, fontSize: 14),
+                        style: _getTextStyle(
+                          text: 'الصافي: ${_formatNumber(netAmount.toString())}',
+                          isBold: true,
+                          fontSize: 14,
+                        ),
                         textDirection: pw.TextDirection.rtl,
                       ),
                     ],
@@ -406,13 +462,20 @@ class PdfService {
                     children: [
                       pw.Text(
                         'ملاحظة:',
-                        style: pw.TextStyle(font: arabicBoldFont, fontSize: 12),
+                        style: _getTextStyle(
+                          text: 'ملاحظة:',
+                          isBold: true,
+                          fontSize: 12,
+                        ),
                         textDirection: pw.TextDirection.rtl,
                       ),
                       pw.SizedBox(height: 5),
                       pw.Text(
                         ArabicTextHelper.cleanText(details.first.docComment),
-                        style: pw.TextStyle(font: arabicFont, fontSize: 10),
+                        style: _getTextStyle(
+                          text: ArabicTextHelper.cleanText(details.first.docComment),
+                          fontSize: 10,
+                        ),
                         textDirection: pw.TextDirection.rtl,
                       ),
                     ],
@@ -429,18 +492,17 @@ class PdfService {
   }
 
   static pw.Widget _buildTableCell(
-    String text,
-    pw.Font font, {
-    bool isHeader = false,
-  }) {
+      String text, {
+        bool isHeader = false,
+      }) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(8),
       child: pw.Text(
         text,
-        style: pw.TextStyle(
-          font: font,
+        style: _getTextStyle(
+          text: text,
+          isBold: isHeader,
           fontSize: isHeader ? 12 : 10,
-          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
         ),
         textAlign: pw.TextAlign.center,
         textDirection: pw.TextDirection.rtl,
@@ -458,6 +520,29 @@ class PdfService {
     } catch (e) {
       return numberStr;
     }
+  }
+
+  // New method to format phone numbers properly for RTL display
+  static String _formatPhoneNumber(String phone) {
+    if (phone.isEmpty) return '';
+
+    // Remove any existing formatting
+    String cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+
+    // Format based on common patterns
+    if (cleanPhone.startsWith('+')) {
+      // International format
+      return cleanPhone;
+    } else if (cleanPhone.length >= 10) {
+      // Local format - add parentheses and dashes for better readability
+      if (cleanPhone.length == 10) {
+        return '(${cleanPhone.substring(0, 3)}) ${cleanPhone.substring(3, 6)}-${cleanPhone.substring(6)}';
+      } else if (cleanPhone.length == 11) {
+        return '(${cleanPhone.substring(0, 3)}) ${cleanPhone.substring(3, 7)}-${cleanPhone.substring(7)}';
+      }
+    }
+
+    return cleanPhone;
   }
 
   static double _parseNumber(String numberStr) {
