@@ -5,7 +5,6 @@ import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 
-
 class PinSetupScreen extends StatefulWidget {
   final VoidCallback onPinSet;
 
@@ -30,8 +29,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   @override
   void dispose() {
     _isDisposed = true;
-    _pinController.dispose();
-    _confirmPinController.dispose();
     super.dispose();
   }
 
@@ -114,7 +111,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         await Future.delayed(const Duration(seconds: 1));
 
         if (mounted && !_isDisposed) {
-
           widget.onPinSet();
 
           Navigator.of(context).pushReplacement(
@@ -133,7 +129,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       if (mounted && !_isDisposed) {
         setState(() {
           _isLoading = false;
-
         });
       }
     }
