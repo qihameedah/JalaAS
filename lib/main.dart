@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:jala_as/utils/responsive.dart';
 import 'services/supabase_service.dart';
 import 'screens/mobile/pin_setup_screen.dart';
 import 'screens/mobile/pin_enter_screen.dart';
@@ -21,7 +22,7 @@ void main() async {
     print('Failed to initialize Supabase: $e');
   }
 
-  runApp(const MyApp());
+  runApp(const HomeScreen());
 }
 
 class MyApp extends StatelessWidget {
