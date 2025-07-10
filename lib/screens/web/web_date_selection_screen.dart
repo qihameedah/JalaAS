@@ -1,4 +1,4 @@
-// lib/screens/web/date_selection_screen.dart
+// lib/screens/web/web_date_selection_screen.dart
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../models/contact.dart';
@@ -189,7 +189,7 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
 
   Widget _buildDesktopLayout(BoxConstraints constraints) {
     return Center(
-      child: Container(
+      child: SizedBox(
         width: 500,
         height: constraints.maxHeight,
         child: _buildDateSelectionPanel(true, constraints.maxHeight),

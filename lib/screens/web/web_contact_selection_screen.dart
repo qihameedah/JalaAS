@@ -1,11 +1,11 @@
-// lib/screens/web/contact_selection_screen.dart
+// lib/screens/web/web_contact_selection_screen.dart
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../models/contact.dart';
 import '../../services/supabase_service.dart';
 import '../../utils/helpers.dart';
 import '../../utils/arabic_text_helper.dart';
-import 'date_selection_screen.dart';
+import 'web_date_selection_screen.dart';
 import 'web_login_screen.dart';
 
 class ContactSelectionScreen extends StatefulWidget {
@@ -304,7 +304,7 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                             Text(
                               _searchQuery.isEmpty
                                   ? 'لا توجد عملاء'
-                                  : 'لا توجد نتائج للبحث "${_searchQuery}"',
+                                  : 'لا توجد نتائج للبحث "$_searchQuery"',
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey.shade600,

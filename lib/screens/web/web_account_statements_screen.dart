@@ -6,7 +6,6 @@ import '../../models/contact.dart';
 import '../../models/account_statement.dart';
 import '../../services/api_service.dart';
 import '../../services/pdf_service.dart';
-import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../utils/arabic_text_helper.dart';
 import 'web_statement_detail_screen.dart';
@@ -467,7 +466,7 @@ class _WebAccountStatementsScreenState
               SizedBox(height: isDesktop ? 12 : 8),
 
               // Document Name
-              Container(
+              SizedBox(
                 width: double.infinity,
                 child: Text(
                   ArabicTextHelper.cleanText(statement.displayName),

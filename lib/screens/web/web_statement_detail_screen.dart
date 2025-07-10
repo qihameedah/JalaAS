@@ -7,7 +7,6 @@ import '../../models/account_statement.dart';
 import '../../models/account_statement.dart' as models;
 import '../../services/api_service.dart';
 import '../../services/pdf_service.dart';
-import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../utils/arabic_text_helper.dart';
 
@@ -732,7 +731,7 @@ class _WebStatementDetailScreenState extends State<WebStatementDetailScreen> {
                               ),
                               Expanded(
                                 flex: 4,
-                                child: Container(
+                                child: SizedBox(
                                   width: double.infinity,
                                   child: Text(
                                     ArabicTextHelper.cleanText(item.name),

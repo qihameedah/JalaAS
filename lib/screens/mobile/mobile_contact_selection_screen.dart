@@ -1,4 +1,4 @@
-// lib/screens/mobile/contact_selection_screen.dart
+// lib/screens/mobile/web_contact_selection_screen.dart
 import 'package:flutter/material.dart';
 import '../../models/contact.dart';
 import '../../models/user.dart';
@@ -6,8 +6,8 @@ import '../../services/supabase_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 // MyAppBar is defined locally in this file
-import 'date_range_screen.dart';
-import 'login_screen.dart';
+import 'web_date_selection_screen.dart';
+import 'mobile_login_screen.dart';
 
 class ContactSelectionScreen extends StatefulWidget {
   const ContactSelectionScreen({super.key});

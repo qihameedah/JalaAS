@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
-import 'login_screen.dart';
+import 'mobile_login_screen.dart';
 
 class PinEnterScreen extends StatefulWidget {
   final VoidCallback onPinVerified;
