@@ -34,13 +34,45 @@ class _WebAccountStatementsScreenState
     extends State<WebAccountStatementsScreen> {
   List<AccountStatement> _statements = [];
   bool _isLoading = true;
-  bool _isCardView = true;
   bool _isGeneratingPdf = false;
+
+  // Controllers for horizontal scrolling (header and data)
+  final ScrollController _horizontalHeaderController = ScrollController();
+  final ScrollController _horizontalDataController = ScrollController();
+  // Controller for vertical scrolling of the ENTIRE screen content
+  // Note: This _verticalController will now control the main screen body,
+  // not internal table parts.
+  final ScrollController _screenVerticalController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadStatements();
+
+    // Attach listeners to synchronize horizontal scrolling between header and data
+    _horizontalHeaderController.addListener(() {
+      if (_horizontalHeaderController.offset !=
+          _horizontalDataController.offset) {
+        _horizontalDataController.jumpTo(_horizontalHeaderController.offset);
+      }
+    });
+
+    _horizontalDataController.addListener(() {
+      if (_horizontalDataController.offset !=
+          _horizontalHeaderController.offset) {
+        _horizontalHeaderController.jumpTo(_horizontalDataController.offset);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Dispose all scroll controllers to prevent memory leaks
+    _horizontalHeaderController.dispose();
+    _horizontalDataController.dispose();
+    _screenVerticalController
+        .dispose(); // Dispose the screen's vertical controller
+    super.dispose();
   }
 
   Future<void> _loadStatements() async {
@@ -137,236 +169,148 @@ class _WebAccountStatementsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 900;
-    final isTablet = screenWidth > 600 && screenWidth <= 900;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isDesktop
-              ? 'كشف حساب - ${ArabicTextHelper.cleanText(widget.contact.nameAr)}'
-              : 'كشف الحساب',
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          // View Toggle
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 1,
+          iconTheme: const IconThemeData(color: Colors.black87),
+          title: Directionality(
+            textDirection: TextDirection.rtl,
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.view_agenda,
-                    color: _isCardView ? Colors.blue : Colors.grey,
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.blue.shade100,
+                  child: Text(
+                    widget.contact.nameAr.isNotEmpty
+                        ? widget.contact.nameAr[0]
+                        : '؟',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade700,
+                    ),
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _isCardView = true;
-                    });
-                  },
-                  tooltip: 'عرض بطاقات',
                 ),
-                Container(
-                  width: 1,
-                  height: 20,
-                  color: Colors.grey.shade300,
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.table_rows,
-                    color: !_isCardView ? Colors.blue : Colors.grey,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        ArabicTextHelper.cleanText(widget.contact.nameAr),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${widget.contact.code} - ${_statements.length} حركة',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _isCardView = false;
-                    });
-                  },
-                  tooltip: 'عرض جدولي',
                 ),
               ],
             ),
           ),
-          // PDF Export
-          if (_statements.isNotEmpty)
+          actions: [
+            if (_statements.isNotEmpty)
+              IconButton(
+                icon: _isGeneratingPdf
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.picture_as_pdf, size: 20),
+                onPressed: _isGeneratingPdf ? null : _generatePdf,
+                tooltip: 'تصدير PDF',
+              ),
             IconButton(
-              icon: _isGeneratingPdf
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.picture_as_pdf),
-              onPressed: _isGeneratingPdf ? null : _generatePdf,
-              tooltip: 'تصدير PDF',
+              icon: const Icon(Icons.refresh, size: 20),
+              onPressed: _loadStatements,
+              tooltip: 'تحديث',
             ),
-          // Refresh
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadStatements,
-            tooltip: 'تحديث',
-          ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Column(
-            children: [
-              // Contact Info Header
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(isDesktop ? 20 : 16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200),
-                  ),
-                ),
-                child: Center(
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: isDesktop ? 1200 : double.infinity,
+            const SizedBox(width: 8),
+          ],
+        ),
+        // --- Change: Structure for fixed header ---
+        body: Column(
+          children: [
+            _buildCompactDateHeader(),
+            _isLoading
+                ? const Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: CircularProgressIndicator(),
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: isDesktop ? 30 : 24,
-                          backgroundColor: Colors.blue.shade100,
-                          child: Text(
-                            widget.contact.nameAr.isNotEmpty
-                                ? widget.contact.nameAr[0]
-                                : '؟',
-                            style: TextStyle(
-                              fontSize: isDesktop ? 20 : 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade700,
-                            ),
-                          ),
+                  )
+                : _statements.isEmpty
+                    ? Expanded(child: _buildEmptyState())
+                    : Expanded(
+                        child: Center(
+                          child: _buildStatementsTable(),
                         ),
-                        SizedBox(width: isDesktop ? 16 : 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                ArabicTextHelper.cleanText(
-                                    widget.contact.nameAr),
-                                style: TextStyle(
-                                  fontSize: isDesktop ? 20 : 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'رقم العميل: ${widget.contact.code}',
-                                style: TextStyle(
-                                  fontSize: isDesktop ? 14 : 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              Text(
-                                'الفترة: ${Helpers.formatDisplayDate(widget.fromDate)} - ${Helpers.formatDisplayDate(widget.toDate)}',
-                                style: TextStyle(
-                                  fontSize: isDesktop ? 14 : 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Statistics Card
-                        if (isDesktop && _statements.isNotEmpty) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'إجمالي الحركات',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                                Text(
-                                  '${_statements.length}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Content
-              Expanded(
-                child: Center(
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: isDesktop ? 1200 : double.infinity,
-                    ),
-                    child: _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _statements.isEmpty
-                            ? _buildEmptyState(isDesktop)
-                            : _isCardView
-                                ? _buildCardView(isDesktop, isTablet)
-                                : _buildTableView(isDesktop),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+                      ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState(bool isDesktop) {
+  Widget _buildCompactDateHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      color: Colors.white,
+      child: Text(
+        'الفترة: ${Helpers.formatDisplayDate(widget.fromDate)} - ${Helpers.formatDisplayDate(widget.toDate)}',
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey.shade600,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.receipt_long_outlined,
-              size: isDesktop ? 80 : 64,
+              size: 48,
               color: Colors.grey.shade400,
             ),
-            SizedBox(height: isDesktop ? 24 : 16),
+            const SizedBox(height: 16),
             Text(
               'لا توجد حركات في هذه الفترة',
               style: TextStyle(
-                fontSize: isDesktop ? 20 : 18,
+                fontSize: 16,
                 color: Colors.grey.shade600,
               ),
             ),
-            SizedBox(height: isDesktop ? 16 : 8),
-            ElevatedButton.icon(
+            const SizedBox(height: 12),
+            ElevatedButton(
               onPressed: _loadStatements,
-              icon: const Icon(Icons.refresh),
-              label: const Text('إعادة التحميل'),
+              child: const Text('إعادة التحميل'),
             ),
           ],
         ),
@@ -374,402 +318,170 @@ class _WebAccountStatementsScreenState
     );
   }
 
-  Widget _buildCardView(bool isDesktop, bool isTablet) {
-    int crossAxisCount = 1;
-    if (isDesktop) {
-      crossAxisCount = 2;
-    } else if (isTablet) {
-      crossAxisCount = 1;
-    }
+// Replace the _buildStatementsTable() method with this:
+  Widget _buildStatementsTable() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final fixedColumnWidth = MediaQuery.of(context).size.width * 0.5;
+    final scrollableColumnContentWidth =
+        screenWidth > 520 ? MediaQuery.of(context).size.width * 0.5 : 240.0;
 
-    if (isDesktop) {
-      return GridView.builder(
-        padding: const EdgeInsets.all(20),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 3.5,
-        ),
-        itemCount: _statements.length,
-        itemBuilder: (context, index) {
-          return _buildStatementCard(_statements[index], isDesktop);
-        },
-      );
-    } else {
-      return ListView.builder(
-        padding: EdgeInsets.all(isTablet ? 16 : 12),
-        itemCount: _statements.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildStatementCard(_statements[index], isDesktop),
-          );
-        },
-      );
-    }
-  }
-
-  Widget _buildStatementCard(AccountStatement statement, bool isDesktop) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: statement.documentType == 'other'
-            ? null
-            : () => _viewStatementDetail(statement),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(isDesktop ? 20 : 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header Row
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isDesktop ? 12 : 10,
-                      vertical: isDesktop ? 6 : 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getDocumentTypeColor(statement.documentType),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      Helpers.getDocumentTypeInArabic(statement.documentType),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isDesktop ? 12 : 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Flexible(
-                    child: Text(
-                      statement.docDate,
-                      style: TextStyle(
-                        fontSize: isDesktop ? 13 : 12,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-
-              SizedBox(height: isDesktop ? 12 : 8),
-
-              // Document Name
-              Container(
-                width: double.infinity,
-                child: Text(
-                  ArabicTextHelper.cleanText(statement.displayName),
-                  style: TextStyle(
-                    fontSize: isDesktop ? 16 : 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
-              SizedBox(height: isDesktop ? 16 : 12),
-
-              // Financial Details Row
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _buildFinancialColumn(
-                        'مدين',
-                        statement.debit,
-                        statement.debit.isNotEmpty
-                            ? Colors.red.shade600
-                            : Colors.grey,
-                        isDesktop,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: _buildFinancialColumn(
-                        'دائن',
-                        statement.credit,
-                        statement.credit.isNotEmpty
-                            ? Colors.green.shade600
-                            : Colors.grey,
-                        isDesktop,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: _buildFinancialColumn(
-                        'الرصيد',
-                        statement.runningBalance,
-                        Colors.blue.shade700,
-                        isDesktop,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Comment if exists
-              if (statement.docComment.isNotEmpty) ...[
-                SizedBox(height: isDesktop ? 12 : 8),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(isDesktop ? 10 : 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    ArabicTextHelper.cleanText(statement.docComment),
-                    style: TextStyle(
-                      fontSize: isDesktop ? 12 : 11,
-                      color: Colors.grey.shade700,
-                      fontStyle: FontStyle.italic,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-
-              // Action indicator
-              if (statement.documentType != 'other') ...[
-                SizedBox(height: isDesktop ? 12 : 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      'اضغط للتفاصيل',
-                      style: TextStyle(
-                        fontSize: isDesktop ? 11 : 10,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: isDesktop ? 14 : 12,
-                      color: Colors.grey.shade400,
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFinancialColumn(
-      String label, String value, Color color, bool isDesktop) {
-    return Container(
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isDesktop ? 11 : 10,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            Helpers.formatNumber(value),
-            style: TextStyle(
-              fontSize: isDesktop ? 12 : 11,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTableView(bool isDesktop) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
+    return Center(
       child: Container(
-        padding: EdgeInsets.all(isDesktop ? 20 : 12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
           child: Column(
             children: [
-              // Table Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                    topRight: Radius.circular(8),
-                  ),
-                ),
+              // --- Fixed Header Row (Always visible at the top) ---
+              SizedBox(
+                height: 40,
                 child: Row(
                   children: [
+                    // Fixed header columns (Date, Document)
+                    Container(
+                      width: fixedColumnWidth,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        border: Border(
+                            // Separator border
+                            top: BorderSide(
+                                color: Colors.grey.shade200, width: 1),
+                            left: BorderSide(
+                                color: Colors.grey.shade400, width: 2)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Center(
+                              child: Text(
+                                'التاريخ',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 4,
+                            child: Center(
+                              child: Text(
+                                'المستند',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Scrollable header columns (Debit, Credit, Balance)
                     Expanded(
-                        flex: 2,
-                        child: Text('التاريخ',
-                            style: _getHeaderStyle(isDesktop),
-                            textAlign: TextAlign.center)),
-                    Expanded(
-                        flex: 3,
-                        child: Text('المستند',
-                            style: _getHeaderStyle(isDesktop),
-                            textAlign: TextAlign.center)),
-                    Expanded(
-                        flex: 2,
-                        child: Text('مدين',
-                            style: _getHeaderStyle(isDesktop),
-                            textAlign: TextAlign.center)),
-                    Expanded(
-                        flex: 2,
-                        child: Text('دائن',
-                            style: _getHeaderStyle(isDesktop),
-                            textAlign: TextAlign.center)),
-                    Expanded(
-                        flex: 2,
-                        child: Text('الرصيد',
-                            style: _getHeaderStyle(isDesktop),
-                            textAlign: TextAlign.center)),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller: _horizontalHeaderController,
+                        child: Container(
+                          width: scrollableColumnContentWidth,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade800,
+                            border: Border(
+                              top: BorderSide(
+                                  color: Colors.grey.shade200, width: 1),
+                              right: BorderSide(
+                                  color: Colors.grey.shade200, width: 1),
+                            ),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'مدين',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'دائن',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'الرصيد',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              // Table Rows
+              // --- Scrollable Data Rows Container ---
               Expanded(
-                child: ListView.separated(
-                  itemCount: _statements.length,
-                  separatorBuilder: (context, index) =>
-                      Divider(height: 1, color: Colors.grey.shade200),
-                  itemBuilder: (context, index) {
-                    final statement = _statements[index];
-                    return InkWell(
-                      onTap: statement.documentType == 'other'
-                          ? null
-                          : () => _viewStatementDetail(statement),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
+                child: SingleChildScrollView(
+                  controller: _screenVerticalController,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Fixed Column Data
+                      SizedBox(
+                        width: fixedColumnWidth,
+                        child: Column(
                           children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                statement.docDate,
-                                style: _getCellStyle(isDesktop),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: _getDocumentTypeColor(
-                                          statement.documentType),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      Helpers.getDocumentTypeInArabic(
-                                          statement.documentType),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      ArabicTextHelper.cleanText(
-                                          statement.displayName),
-                                      style: _getCellStyle(isDesktop),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                Helpers.formatNumber(statement.debit),
-                                style: _getCellStyle(isDesktop).copyWith(
-                                  color: statement.debit.isNotEmpty
-                                      ? Colors.red.shade600
-                                      : Colors.grey,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                Helpers.formatNumber(statement.credit),
-                                style: _getCellStyle(isDesktop).copyWith(
-                                  color: statement.credit.isNotEmpty
-                                      ? Colors.green.shade600
-                                      : Colors.grey,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                Helpers.formatNumber(statement.runningBalance),
-                                style: _getCellStyle(isDesktop).copyWith(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                            for (int index = 0;
+                                index < _statements.length;
+                                index++)
+                              _buildFixedRowPart(_statements[index], index),
                           ],
                         ),
                       ),
-                    );
-                  },
+                      // Right Scrollable Columns Data
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          controller: _horizontalDataController,
+                          child: SizedBox(
+                            width: scrollableColumnContentWidth,
+                            child: Column(
+                              children: [
+                                for (int index = 0;
+                                    index < _statements.length;
+                                    index++)
+                                  _buildScrollableRowPart(
+                                      _statements[index], index),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -779,18 +491,215 @@ class _WebAccountStatementsScreenState
     );
   }
 
-  TextStyle _getHeaderStyle(bool isDesktop) {
-    return TextStyle(
-      fontSize: isDesktop ? 14 : 12,
-      fontWeight: FontWeight.bold,
-      color: Colors.grey.shade700,
-    );
+  // --- Widget for the fixed part of a data row (Date, Document) ---
+  Widget _buildFixedRowPart(AccountStatement statement, int index) {
+    return InkWell(
+        onTap: statement.documentType == 'other'
+            ? null // Not tappable if document type is 'other'
+            : () => _viewStatementDetail(statement),
+        child: Container(
+          height: 52, // Fixed height for each data row
+          decoration: BoxDecoration(
+            color: index % 2 == 0
+                ? Colors.white
+                : Colors.grey.shade50, // Alternating row colors
+            border: Border(
+              bottom: BorderSide(
+                  color: Colors.grey.shade200,
+                  width: 0.5), // Separator between rows
+              left: BorderSide(
+                  color: Colors.grey.shade400,
+                  width: 2), // Visual separator for fixed columns
+            ),
+          ),
+          child: Row(
+            children: [
+// Replace the التاريخ (Date) column section with this:
+              Expanded(
+                flex: 2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Center(
+                    child: Text(
+                      statement.docDate,
+                      style: TextStyle(
+                        fontSize:
+                            MediaQuery.of(context).size.width < 400 ? 8.8 : 10,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+              // المستند (Document) column
+              Expanded(
+                flex: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _getDocumentTypeColor(statement
+                                  .documentType), // Color based on type
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              Helpers.getDocumentTypeInArabic(statement
+                                  .documentType), // Arabic document type
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          if (statement.documentType != 'other')
+                            const Icon(Icons.arrow_forward_ios,
+                                size: 10, color: Colors.grey),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        ArabicTextHelper.cleanText(
+                            statement.displayName), // Cleaned display name
+                        style: const TextStyle(fontSize: 10),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis, // Truncate long text
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ));
   }
 
-  TextStyle _getCellStyle(bool isDesktop) {
-    return TextStyle(
-      fontSize: isDesktop ? 13 : 11,
-      color: Colors.black87,
+  // --- Widget for the scrollable part of a data row (Debit, Credit, Balance) ---
+  Widget _buildScrollableRowPart(AccountStatement statement, int index) {
+    final debitColor =
+        statement.debit.isNotEmpty ? Colors.red.shade600 : Colors.grey.shade400;
+    final creditColor = statement.credit.isNotEmpty
+        ? Colors.green.shade600
+        : Colors.grey.shade400;
+    final balanceColor = Colors.blue.shade700;
+
+    return InkWell(
+      onTap: statement.documentType == 'other'
+          ? null // Not tappable if document type is 'other'
+          : () => _viewStatementDetail(statement), // Tap to view details
+      child: Container(
+        height: 52, // Fixed height for each data row
+        decoration: BoxDecoration(
+          color: index % 2 == 0
+              ? Colors.white
+              : Colors.grey.shade50, // Alternating row colors
+          border: Border(
+            bottom: BorderSide(
+                color: Colors.grey.shade200,
+                width: 0.5), // Separator between rows
+          ),
+        ),
+        child: Row(
+          children: [
+            // مدين (Debit) column
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'مدين', // Label for Debit
+                      style: TextStyle(
+                          fontSize: 8,
+                          color: debitColor,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      Helpers.formatNumber(
+                          statement.debit), // Formatted debit amount
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: debitColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // دائن (Credit) column
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'دائن', // Label for Credit
+                      style: TextStyle(
+                          fontSize: 8,
+                          color: creditColor,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      Helpers.formatNumber(
+                          statement.credit), // Formatted credit amount
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: creditColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // الرصيد (Balance) column
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'الرصيد', // Label for Balance
+                      style: TextStyle(
+                          fontSize: 8,
+                          color: balanceColor,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      Helpers.formatNumber(statement
+                          .runningBalance), // Formatted running balance
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: balanceColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

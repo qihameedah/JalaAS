@@ -101,9 +101,9 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
       } else {
         _filteredContacts = _contacts.where((contact) {
           final nameMatch =
-          contact.nameAr.toLowerCase().contains(query.toLowerCase());
+              contact.nameAr.toLowerCase().contains(query.toLowerCase());
           final codeMatch =
-          contact.code.toLowerCase().contains(query.toLowerCase());
+              contact.code.toLowerCase().contains(query.toLowerCase());
           return nameMatch || codeMatch;
         }).toList();
       }
@@ -150,117 +150,358 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(AppConstants.backgroundColor),
       appBar: _currentUser != null
           ? _MyHomeAppBar(
-        currentUser: _currentUser!,
-        onLogout: _logout,
-        onRefresh: _loadContacts,
-      )
+              currentUser: _currentUser!,
+              onLogout: _logout,
+              onRefresh: _loadContacts,
+            )
           : AppBar(
-        title: const Text('اختيار العميل'),
-        automaticallyImplyLeading: false,
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Column(
-            children: [
-              // Search Field
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _filterContacts,
-                  decoration: const InputDecoration(
-                    labelText: 'البحث عن عميل',
-                    hintText: 'ادخل اسم العميل أو رقمه',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-
-              // Contacts List
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _filteredContacts.isEmpty
-                    ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.people_outline,
-                        size: 64,
-                        color: Colors.grey[400],
+              title: const Text('اختيار العميل'),
+              backgroundColor: const Color(AppConstants.primaryColor),
+              foregroundColor: Colors.white,
+              automaticallyImplyLeading: false,
+            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(AppConstants.surfaceColor),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              children: [
+                // Enhanced Search Field
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _contacts.isEmpty
-                            ? 'لا توجد عملاء'
-                            : 'لا توجد نتائج للبحث',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      if (_contacts.isEmpty) ...[
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: _loadContacts,
-                          child: const Text('إعادة التحميل'),
-                        ),
-                      ],
                     ],
                   ),
-                )
-                    : ListView.builder(
-                  itemCount: _filteredContacts.length,
-                  itemBuilder: (context, index) {
-                    final contact = _filteredContacts[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterContacts,
+                    decoration: InputDecoration(
+                      labelText: 'البحث عن عميل',
+                      hintText: 'ادخل اسم العميل أو رقمه',
+                      prefixIcon: Container(
+                        margin: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(AppConstants.accentColor),
+                              const Color(AppConstants.accentColor)
+                                  .withOpacity(0.8),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.search,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor:
-                          const Color(AppConstants.primaryColor),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(AppConstants.accentColor),
+                          width: 2,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
+                    ),
+                  ),
+                ),
+
+                // Contact count badge
+                if (_filteredContacts.isNotEmpty) ...[
+                  Container(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(AppConstants.accentColor)
+                                    .withOpacity(0.1),
+                                const Color(AppConstants.accentColor)
+                                    .withOpacity(0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(AppConstants.accentColor)
+                                  .withOpacity(0.3),
+                            ),
+                          ),
                           child: Text(
-                            contact.nameAr.isNotEmpty
-                                ? contact.nameAr[0]
-                                : 'ع',
+                            '${_filteredContacts.length} عميل',
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                              color: Color(AppConstants.accentColor),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
                             ),
                           ),
                         ),
-                        title: Text(
-                          contact.nameAr,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Enhanced Contacts List
+                Expanded(
+                  child: _isLoading
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          const Color(AppConstants.accentColor)
+                                              .withOpacity(0.1),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
+                                ),
+                                child: const CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color(AppConstants.accentColor)),
+                                  strokeWidth: 3,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'جاري تحميل العملاء...',
+                                style: TextStyle(
+                                  color: Color(AppConstants.primaryColor),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('رقم العميل: ${contact.code}'),
-                            if (contact.areaName?.isNotEmpty == true)
-                              Text('المنطقة: ${contact.areaName}'),
-                            if (contact.phone?.isNotEmpty == true)
-                              Text('الهاتف: ${contact.phone}'),
-                          ],
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios),
-                        onTap: () => _selectContact(contact),
-                      ),
-                    );
-                  },
+                        )
+                      : _filteredContacts.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(24),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey.withOpacity(0.1),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.people_outline,
+                                      size: 60,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    _contacts.isEmpty
+                                        ? 'لا توجد عملاء'
+                                        : 'لا توجد نتائج للبحث',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (_contacts.isEmpty) ...[
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            const Color(
+                                                AppConstants.accentColor),
+                                            const Color(
+                                                    AppConstants.accentColor)
+                                                .withOpacity(0.8),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(25),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(
+                                                    AppConstants.accentColor)
+                                                .withOpacity(0.3),
+                                            blurRadius: 15,
+                                            offset: const Offset(0, 8),
+                                          ),
+                                        ],
+                                      ),
+                                      child: TextButton(
+                                        onPressed: _loadContacts,
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 24, vertical: 12),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(25),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'إعادة التحميل',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _filteredContacts.length,
+                              itemBuilder: (context, index) {
+                                final contact = _filteredContacts[index];
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 6,
+                                        spreadRadius: 0.5,
+                                        offset: const Offset(0, 0),
+                                      ),
+                                    ],
+                                  ),
+                                  child: InkWell(
+                                    onTap: () => _selectContact(contact),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Row(
+                                        children: [
+                                          // Simple circular avatar
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                  AppConstants.accentColor),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                contact.nameAr.isNotEmpty
+                                                    ? contact.nameAr[0]
+                                                    : 'ع',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+
+                                          const SizedBox(width: 16),
+
+                                          // Content - Only Name and Code
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                // Contact Name
+                                                Text(
+                                                  contact.nameAr,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 16,
+                                                    color: Color(AppConstants
+                                                        .primaryColor),
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+
+                                                const SizedBox(height: 6),
+
+                                                // Contact Code
+                                                Text(
+                                                  '# ${contact.code}',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: const Color(
+                                                        AppConstants
+                                                            .accentColor),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          // Simple arrow
+                                          Icon(
+                                            Icons.arrow_forward_ios,
+                                            size: 16,
+                                            color: Colors.grey[400],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -282,21 +523,73 @@ class _MyHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      elevation: 8,
+      elevation: 4,
       backgroundColor: const Color(AppConstants.primaryColor),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      automaticallyImplyLeading: false,
+      title: Row(
         children: [
-          Text(
-            "${getGreetingMessage()}${currentUser.username}",
-            style: Theme.of(context).textTheme.titleSmall!.apply(
-              color: const Color(0xFFFFFFFF),
+          // Logo in AppBar with white background
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Image.asset(
+              AppConstants.logoPath,
+              width: 28,
+              height: 28,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(AppConstants.accentColor),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                );
+              },
             ),
           ),
-          Text(
-            'مندوب: ${currentUser.salesman}${currentUser.area != null ? ' - منطقة: ${currentUser.area}' : ''}',
-            style: Theme.of(context).textTheme.titleMedium!.apply(
-              color: const Color(0xFFFFFFFF),
+
+          const SizedBox(width: 12),
+
+          // User Info - Simplified
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "${getGreetingMessage()} ${currentUser.username}",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (currentUser.salesman.isNotEmpty ||
+                    currentUser.area != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'مندوب: ${currentUser.salesman}${currentUser.area != null ? ' - منطقة: ${currentUser.area}' : ''}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -310,12 +603,13 @@ class _MyHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
               onRefresh();
             }
           },
+          icon: const Icon(Icons.more_vert, color: Colors.white),
           itemBuilder: (context) => [
             const PopupMenuItem(
               value: 'refresh',
               child: Row(
                 children: [
-                  Icon(Icons.refresh),
+                  Icon(Icons.refresh, color: Color(AppConstants.accentColor)),
                   SizedBox(width: 8),
                   Text('تحديث'),
                 ],
@@ -325,7 +619,7 @@ class _MyHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
               value: 'logout',
               child: Row(
                 children: [
-                  Icon(Icons.logout),
+                  Icon(Icons.logout, color: Color(AppConstants.errorColor)),
                   SizedBox(width: 8),
                   Text('تسجيل الخروج'),
                 ],

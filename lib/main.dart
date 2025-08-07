@@ -1,8 +1,11 @@
 // lib/main.dart - Mobile Entry Point
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:async';
+import 'dart:io';
 import 'services/supabase_service.dart';
 import 'screens/mobile/pin_setup_screen.dart';
 import 'screens/mobile/pin_enter_screen.dart';
@@ -106,6 +109,9 @@ class _AppInitializerState extends State<AppInitializer>
     with WidgetsBindingObserver {
   bool _hasInternet = true;
   bool _isNavigating = false;
+  DateTime? _backgroundTime;
+  Timer? _timeoutTimer;
+  bool _isInBackground = false;
 
   @override
   void initState() {
@@ -117,17 +123,76 @@ class _AppInitializerState extends State<AppInitializer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _timeoutTimer?.cancel();
     super.dispose();
+  }
+
+  void _startBackgroundTimer() {
+    _timeoutTimer?.cancel();
+    _backgroundTime = DateTime.now();
+
+    // Start timer to check every 30 seconds
+    _timeoutTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _checkBackgroundTimeout();
+    });
+
+    print('Background timer started at: $_backgroundTime');
+  }
+
+  void _stopBackgroundTimer() {
+    _timeoutTimer?.cancel();
+    _backgroundTime = null;
+    print('Background timer stopped');
+  }
+
+  Future<void> _checkBackgroundTimeout() async {
+    if (!_isInBackground || _backgroundTime == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final backgroundDuration = now.difference(_backgroundTime!);
+
+    print('App in background for: ${backgroundDuration.inMinutes} minutes');
+
+    if (backgroundDuration.inMinutes >= AppConstants.backgroundTimeoutMinutes) {
+      print('5 minutes timeout reached - closing app');
+      _closeApp();
+    }
+  }
+
+  void _closeApp() {
+    print('Closing app due to background timeout');
+
+    // Cancel timer
+    _timeoutTimer?.cancel();
+
+    // Close the app completely
+    if (Platform.isAndroid) {
+      SystemNavigator.pop(); // Close app on Android
+    } else if (Platform.isIOS) {
+      exit(0); // Close app on iOS (Note: Apple doesn't recommend this)
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
+    print('App lifecycle state changed to: $state'); // Debug log
+
     if (state == AppLifecycleState.resumed) {
+      print('App resumed from background'); // Debug log
+      _isInBackground = false;
+      _stopBackgroundTimer();
       _checkAppResume();
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
+    } else if (state == AppLifecycleState.paused) {
+      print('App paused, going to background'); // Debug log
+      _isInBackground = true;
+      _startBackgroundTimer();
+      Helpers.updateLastActiveTime();
+    } else if (state == AppLifecycleState.inactive) {
+      print('App inactive'); // Debug log
       Helpers.updateLastActiveTime();
     }
   }
@@ -146,31 +211,31 @@ class _AppInitializerState extends State<AppInitializer>
         return;
       }
 
-      final shouldRequirePin = await Helpers.shouldRequirePin();
       final hasPinCode = await Helpers.hasPinCode();
 
       if (!mounted) return;
 
       if (!hasPinCode) {
+        // First time ever - setup PIN
         _navigateToPinSetup();
-      } else if (shouldRequirePin) {
-        _navigateToPinEntry();
       } else {
-        _checkLoginStatus();
+        // Has PIN - require PIN entry
+        _navigateToPinEntry();
       }
     } catch (e) {
       print('Error in _checkInitialState: $e');
       if (mounted) {
-        _navigateToLogin();
+        _navigateToNoInternet();
       }
     }
   }
 
-  // Resume app: recheck internet and PIN
+  // Resume app: recheck internet and PIN based on background time
   Future<void> _checkAppResume() async {
     if (_isNavigating || !mounted) return;
 
     try {
+      // First check internet connection
       _hasInternet = await Helpers.hasInternetConnection();
 
       if (!mounted) return;
@@ -180,10 +245,15 @@ class _AppInitializerState extends State<AppInitializer>
         return;
       }
 
+      // Check if PIN is required after coming back from background
       final shouldRequirePin = await Helpers.shouldRequirePin();
+
+      print('Should require PIN on resume: $shouldRequirePin'); // Debug log
+
       if (!mounted) return;
 
       if (shouldRequirePin) {
+        print('Requiring PIN due to background timeout on resume'); // Debug log
         _navigateToPinEntry();
       }
     } catch (e) {
@@ -191,8 +261,8 @@ class _AppInitializerState extends State<AppInitializer>
     }
   }
 
-  // Check if user is already logged in
-  Future<void> _checkLoginStatus() async {
+  // Check login status after PIN verification
+  Future<void> _checkLoginStatusAfterPin() async {
     if (_isNavigating || !mounted) return;
 
     try {
@@ -206,7 +276,7 @@ class _AppInitializerState extends State<AppInitializer>
         _navigateToLogin();
       }
     } catch (e) {
-      print('Error in _checkLoginStatus: $e');
+      print('Error in _checkLoginStatusAfterPin: $e');
       if (mounted) {
         _navigateToLogin();
       }
@@ -239,7 +309,8 @@ class _AppInitializerState extends State<AppInitializer>
         builder: (context) => PinSetupScreen(
           onPinSet: () {
             _isNavigating = false;
-            _checkLoginStatus();
+            // After PIN setup, go directly to login screen
+            _navigateToLogin();
           },
         ),
       ),
@@ -255,7 +326,7 @@ class _AppInitializerState extends State<AppInitializer>
         builder: (context) => PinEnterScreen(
           onPinVerified: () {
             _isNavigating = false;
-            _checkLoginStatus();
+            _checkLoginStatusAfterPin();
           },
         ),
       ),
@@ -286,9 +357,43 @@ class _AppInitializerState extends State<AppInitializer>
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
+      backgroundColor: const Color(AppConstants.backgroundColor),
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(AppConstants.primaryColor),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.apps,
+                size: 64,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              AppConstants.appName,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(AppConstants.primaryColor),
+                  ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'جاري التحميل...',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }

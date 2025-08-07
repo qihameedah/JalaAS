@@ -33,10 +33,39 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
   bool _isCardView = true;
   bool _isGeneratingPdf = false;
 
+  // Controllers for horizontal scrolling (header and data)
+  final ScrollController _horizontalHeaderController = ScrollController();
+  final ScrollController _horizontalDataController = ScrollController();
+  final ScrollController _screenVerticalController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _loadStatements();
+
+    // Attach listeners to synchronize horizontal scrolling between header and data
+    _horizontalHeaderController.addListener(() {
+      if (_horizontalHeaderController.offset !=
+          _horizontalDataController.offset) {
+        _horizontalDataController.jumpTo(_horizontalHeaderController.offset);
+      }
+    });
+
+    _horizontalDataController.addListener(() {
+      if (_horizontalDataController.offset !=
+          _horizontalHeaderController.offset) {
+        _horizontalHeaderController.jumpTo(_horizontalDataController.offset);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Dispose all scroll controllers to prevent memory leaks
+    _horizontalHeaderController.dispose();
+    _horizontalDataController.dispose();
+    _screenVerticalController.dispose();
+    super.dispose();
   }
 
   // Load the account statements from the API
@@ -56,12 +85,12 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
         _statements = statements;
         _isLoading = false;
       });
-
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      if (mounted) { // Check if the widget is still mounted
+      if (mounted) {
+        // Check if the widget is still mounted
         Helpers.showSnackBar(
           context,
           'فشل في تحميل كشف الحساب: ${e.toString()}',
@@ -88,11 +117,11 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
       await Printing.layoutPdf(
         onLayout: (format) async => pdfBytes,
         name:
-        'كشف_حساب_${widget.contact.code}_${widget.fromDate}_${widget.toDate}.pdf',
+            'كشف_حساب_${widget.contact.code}_${widget.fromDate}_${widget.toDate}.pdf',
       );
-
     } catch (e) {
-      if (mounted) { // Check if the widget is still mounted
+      if (mounted) {
+        // Check if the widget is still mounted
         Helpers.showSnackBar(
           context,
           'فشل في إنشاء ملف PDF: ${e.toString()}',
@@ -141,11 +170,11 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
             IconButton(
               icon: _isGeneratingPdf
                   ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
-              )
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
                   : const Icon(Icons.picture_as_pdf),
               onPressed: _isGeneratingPdf ? null : _generatePdf,
               tooltip: 'إنشاء PDF',
@@ -201,34 +230,34 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _statements.isEmpty
-                    ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.receipt_long_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'لا توجد حركات في هذه الفترة',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _loadStatements,
-                        child: const Text('إعادة التحميل'),
-                      ),
-                    ],
-                  ),
-                )
-                    : _isCardView
-                    ? _buildCardView()
-                    : _buildTableView(),
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.receipt_long_outlined,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'لا توجد حركات في هذه الفترة',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextButton(
+                                  onPressed: _loadStatements,
+                                  child: const Text('إعادة التحميل'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _isCardView
+                            ? _buildCardView()
+                            : _buildTableView(),
               ),
             ],
           ),
@@ -247,7 +276,9 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 2,
           child: InkWell(
-            onTap: statement.documentType == 'other' ? null : () => _viewStatementDetail(statement),
+            onTap: statement.documentType == 'other'
+                ? null
+                : () => _viewStatementDetail(statement),
             borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -407,76 +438,391 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
   }
 
   Widget _buildTableView() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columnSpacing: 20,
-        columns: const [
-          DataColumn(label: Text('التاريخ')),
-          DataColumn(label: Text('المستند')),
-          DataColumn(label: Text('مدين')),
-          DataColumn(label: Text('دائن')),
-          DataColumn(label: Text('الرصيد')),
-        ],
-        rows: _statements.map((statement) {
-          return DataRow(
-            onSelectChanged: (_) => _viewStatementDetail(statement),
-            cells: [
-              DataCell(Text(statement.docDate)),
-              DataCell(
-                SizedBox(
-                  width: 150,
-                  child: Text(
-                    ArabicTextHelper.cleanText(statement.displayName),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final fixedColumnWidth = screenWidth * 0.5;
+    final scrollableColumnContentWidth =
+        screenWidth > 520 ? screenWidth * 0.5 : 240.0;
+
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Column(
+            children: [
+              // Fixed Header Row
+              SizedBox(
+                height: 40,
+                child: Row(
+                  children: [
+                    // Fixed header columns (Date, Document)
+                    Container(
+                      width: fixedColumnWidth,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        border: Border(
+                          top:
+                              BorderSide(color: Colors.grey.shade200, width: 1),
+                          left:
+                              BorderSide(color: Colors.grey.shade400, width: 2),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Center(
+                              child: Text(
+                                'التاريخ',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 4,
+                            child: Center(
+                              child: Text(
+                                'المستند',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Scrollable header columns (Debit, Credit, Balance)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller: _horizontalHeaderController,
+                        child: Container(
+                          width: scrollableColumnContentWidth,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade800,
+                            border: Border(
+                              top: BorderSide(
+                                  color: Colors.grey.shade200, width: 1),
+                              right: BorderSide(
+                                  color: Colors.grey.shade200, width: 1),
+                            ),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'مدين',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'دائن',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'الرصيد',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              DataCell(
-                Text(
-                  Helpers.formatNumber(statement.debit),
-                  style: TextStyle(
-                    color: statement.debit.isNotEmpty
-                        ? Colors.red[600]
-                        : Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              DataCell(
-                Text(
-                  Helpers.formatNumber(statement.credit),
-                  style: TextStyle(
-                    color: statement.credit.isNotEmpty
-                        ? Colors.green[600]
-                        : Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              DataCell(
-                Text(
-                  Helpers.formatNumber(statement.runningBalance),
-                  style: const TextStyle(
-                    color: Color(AppConstants.primaryColor),
-                    fontWeight: FontWeight.bold,
+              // Scrollable Data Rows Container
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _screenVerticalController,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Fixed Column Data
+                      SizedBox(
+                        width: fixedColumnWidth,
+                        child: Column(
+                          children: [
+                            for (int index = 0;
+                                index < _statements.length;
+                                index++)
+                              _buildFixedRowPart(_statements[index], index),
+                          ],
+                        ),
+                      ),
+                      // Right Scrollable Columns Data
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          controller: _horizontalDataController,
+                          child: SizedBox(
+                            width: scrollableColumnContentWidth,
+                            child: Column(
+                              children: [
+                                for (int index = 0;
+                                    index < _statements.length;
+                                    index++)
+                                  _buildScrollableRowPart(
+                                      _statements[index], index),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
-          );
-        }).toList(),
+          ),
+        ),
       ),
     );
   }
 
-  // Get color for the document type
+  // Widget for the fixed part of a data row (Date, Document)
+  Widget _buildFixedRowPart(AccountStatement statement, int index) {
+    return InkWell(
+      onTap: statement.documentType == 'other'
+          ? null
+          : () => _viewStatementDetail(statement),
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: index % 2 == 0 ? Colors.white : Colors.grey.shade50,
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.shade200, width: 0.5),
+            left: BorderSide(color: Colors.grey.shade400, width: 2),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Date column
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Center(
+                  child: Text(
+                    statement.docDate,
+                    style: TextStyle(
+                      fontSize:
+                          MediaQuery.of(context).size.width < 400 ? 8.8 : 10,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+            // Document column
+            Expanded(
+              flex: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                _getDocumentTypeColor(statement.documentType),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            Helpers.getDocumentTypeInArabic(
+                                statement.documentType),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        if (statement.documentType != 'other')
+                          const Icon(Icons.arrow_forward_ios,
+                              size: 10, color: Colors.grey),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      ArabicTextHelper.cleanText(statement.displayName),
+                      style: const TextStyle(fontSize: 10),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget for the scrollable part of a data row (Debit, Credit, Balance)
+  Widget _buildScrollableRowPart(AccountStatement statement, int index) {
+    final debitColor =
+        statement.debit.isNotEmpty ? Colors.red.shade600 : Colors.grey.shade400;
+    final creditColor = statement.credit.isNotEmpty
+        ? Colors.green.shade600
+        : Colors.grey.shade400;
+    final balanceColor = Colors.blue.shade700;
+
+    return InkWell(
+      onTap: statement.documentType == 'other'
+          ? null
+          : () => _viewStatementDetail(statement),
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: index % 2 == 0 ? Colors.white : Colors.grey.shade50,
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.shade200, width: 0.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Debit column
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'مدين',
+                      style: TextStyle(
+                        fontSize: 8,
+                        color: debitColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      Helpers.formatNumber(statement.debit),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: debitColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Credit column
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'دائن',
+                      style: TextStyle(
+                        fontSize: 8,
+                        color: creditColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      Helpers.formatNumber(statement.credit),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: creditColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Balance column
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'الرصيد',
+                      style: TextStyle(
+                        fontSize: 8,
+                        color: balanceColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      Helpers.formatNumber(statement.runningBalance),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: balanceColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// Updated document type color method
   Color _getDocumentTypeColor(String documentType) {
     switch (documentType) {
       case 'invoice':
-        return Colors.blue;
+        return const Color(AppConstants.primaryColor);
       case 'return':
-        return Colors.orange;
+        return const Color(AppConstants.accentColor);
       case 'payment':
         return Colors.green;
       default:

@@ -37,10 +37,69 @@ class _WebStatementDetailScreenState extends State<WebStatementDetailScreen> {
   bool _isLoading = true;
   bool _isGeneratingPdf = false;
 
+  // Controllers for invoice table scrolling
+  final ScrollController _invoiceHorizontalHeaderController =
+      ScrollController();
+  final ScrollController _invoiceHorizontalDataController = ScrollController();
+  final ScrollController _invoiceVerticalController = ScrollController();
+
+  // Controllers for payment table scrolling
+  final ScrollController _paymentHorizontalHeaderController =
+      ScrollController();
+  final ScrollController _paymentHorizontalDataController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _loadDetails();
+    _setupScrollControllers();
+  }
+
+  void _setupScrollControllers() {
+    // Synchronize invoice table horizontal scrolling
+    _invoiceHorizontalHeaderController.addListener(() {
+      if (_invoiceHorizontalHeaderController.offset !=
+          _invoiceHorizontalDataController.offset) {
+        _invoiceHorizontalDataController
+            .jumpTo(_invoiceHorizontalHeaderController.offset);
+      }
+    });
+
+    _invoiceHorizontalDataController.addListener(() {
+      if (_invoiceHorizontalDataController.offset !=
+          _invoiceHorizontalHeaderController.offset) {
+        _invoiceHorizontalHeaderController
+            .jumpTo(_invoiceHorizontalDataController.offset);
+      }
+    });
+
+    // Synchronize payment table horizontal scrolling
+    _paymentHorizontalHeaderController.addListener(() {
+      if (_paymentHorizontalHeaderController.offset !=
+          _paymentHorizontalDataController.offset) {
+        _paymentHorizontalDataController
+            .jumpTo(_paymentHorizontalHeaderController.offset);
+      }
+    });
+
+    _paymentHorizontalDataController.addListener(() {
+      if (_paymentHorizontalDataController.offset !=
+          _paymentHorizontalHeaderController.offset) {
+        _paymentHorizontalHeaderController
+            .jumpTo(_paymentHorizontalDataController.offset);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Dispose all scroll controllers
+    _invoiceHorizontalHeaderController.dispose();
+    _invoiceHorizontalDataController.dispose();
+    _invoiceVerticalController.dispose();
+    _paymentHorizontalHeaderController.dispose();
+    _paymentHorizontalDataController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDetails() async {
@@ -55,7 +114,6 @@ class _WebStatementDetailScreenState extends State<WebStatementDetailScreen> {
         toDate: Helpers.formatDate(widget.toDate),
       );
 
-      // Filter details for this specific statement
       final filteredDetails = details.where((detail) {
         return ArabicTextHelper.cleanText(detail.shownParent) ==
             ArabicTextHelper.cleanText(widget.statement.shownParent);
@@ -129,74 +187,117 @@ class _WebStatementDetailScreenState extends State<WebStatementDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 900;
-    final isTablet = screenWidth > 600 && screenWidth <= 900;
+    final isDesktop = screenWidth > 1024;
+    final isTablet = screenWidth > 600 && screenWidth <= 1024;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isDesktop
-              ? 'تفاصيل ${Helpers.getDocumentTypeInArabic(widget.statement.documentType)} - ${ArabicTextHelper.cleanText(widget.contact.nameAr)}'
-              : 'تفاصيل ${Helpers.getDocumentTypeInArabic(widget.statement.documentType)}',
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          if (_details.isNotEmpty)
-            IconButton(
-              icon: _isGeneratingPdf
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.picture_as_pdf),
-              onPressed: _isGeneratingPdf ? null : _generatePdf,
-              tooltip: 'تصدير PDF',
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 1,
+          iconTheme: const IconThemeData(color: Colors.black87),
+          title: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getDocumentTypeColor(widget.statement.documentType),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    Helpers.getDocumentTypeInArabic(
+                        widget.statement.documentType),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    ArabicTextHelper.cleanText(widget.contact.nameAr),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadDetails,
-            tooltip: 'تحديث',
           ),
-        ],
+          actions: [
+            if (_details.isNotEmpty)
+              IconButton(
+                icon: _isGeneratingPdf
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.picture_as_pdf, size: 20),
+                onPressed: _isGeneratingPdf ? null : _generatePdf,
+                tooltip: 'تصدير PDF',
+              ),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 20),
+              onPressed: _loadDetails,
+              tooltip: 'تحديث',
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _details.isEmpty
+                ? _buildEmptyState()
+                : Column(
+                    children: [
+                      _buildCompactHeader(),
+                      Expanded(
+                        child: widget.statement.documentType == 'payment'
+                            ? _buildPaymentDetails()
+                            : _buildInvoiceDetails(),
+                      ),
+                    ],
+                  ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _details.isEmpty
-              ? _buildEmptyState(isDesktop)
-              : _buildContent(isDesktop, isTablet),
     );
   }
 
-  Widget _buildEmptyState(bool isDesktop) {
+  Widget _buildEmptyState() {
     return Center(
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: isDesktop ? 600 : double.infinity,
-        ),
-        padding: const EdgeInsets.all(32),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.description_outlined,
-              size: isDesktop ? 80 : 64,
+              size: 48,
               color: Colors.grey.shade400,
             ),
-            SizedBox(height: isDesktop ? 24 : 16),
+            const SizedBox(height: 16),
             Text(
               'لا توجد تفاصيل لهذا المستند',
               style: TextStyle(
-                fontSize: isDesktop ? 20 : 18,
+                fontSize: 16,
                 color: Colors.grey.shade600,
               ),
             ),
-            SizedBox(height: isDesktop ? 16 : 12),
-            ElevatedButton.icon(
+            const SizedBox(height: 12),
+            ElevatedButton(
               onPressed: _loadDetails,
-              icon: const Icon(Icons.refresh),
-              label: const Text('إعادة المحاولة'),
+              child: const Text('إعادة المحاولة'),
             ),
           ],
         ),
@@ -204,368 +305,683 @@ class _WebStatementDetailScreenState extends State<WebStatementDetailScreen> {
     );
   }
 
-  Widget _buildContent(bool isDesktop, bool isTablet) {
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: isDesktop ? 1000 : double.infinity,
-        ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(isDesktop ? 24 : 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCompactHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              // Document Header Card
-              _buildDocumentHeader(isDesktop),
-
-              SizedBox(height: isDesktop ? 24 : 16),
-
-              // Content based on document type
-              if (widget.statement.documentType == 'payment')
-                _buildPaymentDetails(isDesktop, isTablet)
-              else
-                _buildInvoiceDetails(isDesktop, isTablet),
+              Expanded(
+                child: Text(
+                  ArabicTextHelper.cleanText(widget.statement.displayName),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                widget.statement.docDate,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text(
+                'العميل: ${widget.contact.code}',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              if (_details.isNotEmpty &&
+                  _details.first.docComment.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'ملاحظة: ${ArabicTextHelper.cleanText(_details.first.docComment)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.orange.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDocumentHeader(bool isDesktop) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+  Widget _buildPaymentDetails() {
+    if (_details.isEmpty) return const SizedBox();
+
+    final detail = _details.first;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final fixedColumnWidth = screenWidth * 0.4;
+    final scrollableColumnContentWidth =
+        screenWidth > 520 ? screenWidth * 0.6 : 320.0;
+
+    return Center(
       child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(isDesktop ? 24 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 16 : 12,
-                    vertical: isDesktop ? 8 : 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getDocumentTypeColor(widget.statement.documentType),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Text(
-                    Helpers.getDocumentTypeInArabic(
-                        widget.statement.documentType),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isDesktop ? 14 : 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Column(
+            children: [
+              // Header section
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade600,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(8)),
                 ),
-                const Spacer(),
-                Text(
-                  widget.statement.docDate,
-                  style: TextStyle(
-                    fontSize: isDesktop ? 16 : 14,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: isDesktop ? 16 : 12),
-
-            Text(
-              ArabicTextHelper.cleanText(widget.statement.displayName),
-              style: TextStyle(
-                fontSize: isDesktop ? 24 : 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            SizedBox(height: isDesktop ? 16 : 12),
-
-            // Customer Info
-            Container(
-              padding: EdgeInsets.all(isDesktop ? 16 : 12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: isDesktop ? 20 : 16,
-                    backgroundColor: Colors.blue.shade100,
-                    child: Text(
-                      widget.contact.nameAr.isNotEmpty
-                          ? widget.contact.nameAr[0]
-                          : '؟',
+                child: Row(
+                  children: [
+                    Icon(Icons.payment, color: Colors.white, size: 16),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'تفاصيل القبض',
                       style: TextStyle(
-                        fontSize: isDesktop ? 14 : 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              // Table Header
+              SizedBox(
+                height: 32,
+                child: Row(
+                  children: [
+                    // Fixed header columns
+                    Container(
+                      width: fixedColumnWidth,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade700,
+                        border: Border(
+                          left:
+                              BorderSide(color: Colors.grey.shade500, width: 1),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'طريقة الدفع',
+                                style: TextStyle(
+                                    fontSize:
+                                        MediaQuery.of(context).size.width < 600
+                                            ? 10
+                                            : 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'رقم الشيك',
+                                style: TextStyle(
+                                    fontSize:
+                                        MediaQuery.of(context).size.width < 600
+                                            ? 10
+                                            : 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  SizedBox(width: isDesktop ? 12 : 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ArabicTextHelper.cleanText(widget.contact.nameAr),
-                          style: TextStyle(
-                            fontSize: isDesktop ? 16 : 14,
-                            fontWeight: FontWeight.bold,
+                    // Scrollable header columns
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller: _paymentHorizontalHeaderController,
+                        child: Container(
+                          width: scrollableColumnContentWidth,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade700,
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          'رقم العميل: ${widget.contact.code}',
-                          style: TextStyle(
-                            fontSize: isDesktop ? 12 : 11,
-                            color: Colors.grey.shade600,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'تاريخ الاستحقاق',
+                                    style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width <
+                                                    600
+                                                ? 10
+                                                : 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'القيمة',
+                                    style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width <
+                                                    600
+                                                ? 10
+                                                : 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Document comment if exists
-            if (_details.isNotEmpty &&
-                _details.first.docComment.isNotEmpty) ...[
-              SizedBox(height: isDesktop ? 16 : 12),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(isDesktop ? 16 : 12),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.shade200),
+                  ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              // Data Row
+              SizedBox(
+                height: 36,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.note_alt,
-                          size: isDesktop ? 20 : 16,
-                          color: Colors.amber.shade700,
+                    // Fixed data columns
+                    Container(
+                      width: fixedColumnWidth,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border(
+                          left:
+                              BorderSide(color: Colors.grey.shade500, width: 1),
+                          bottom: BorderSide(
+                              color: Colors.grey.shade300, width: 0.5),
                         ),
-                        SizedBox(width: isDesktop ? 8 : 6),
-                        Text(
-                          'ملاحظة:',
-                          style: TextStyle(
-                            fontSize: isDesktop ? 14 : 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amber.shade700,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                detail.check.isEmpty ? 'كاش' : 'شيك',
+                                style: TextStyle(
+                                    fontSize:
+                                        MediaQuery.of(context).size.width < 600
+                                            ? 10
+                                            : 11),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                detail.check.isEmpty ? '-' : detail.checkNumber,
+                                style: TextStyle(
+                                    fontSize:
+                                        MediaQuery.of(context).size.width < 600
+                                            ? 10
+                                            : 11),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Scrollable data columns
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller: _paymentHorizontalDataController,
+                        child: Container(
+                          width: scrollableColumnContentWidth,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border(
+                              bottom: BorderSide(
+                                  color: Colors.grey.shade300, width: 0.5),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    detail.check.isEmpty
+                                        ? '-'
+                                        : detail.checkDueDate,
+                                    style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width <
+                                                    600
+                                                ? 10
+                                                : 11),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    Helpers.formatNumber(detail.credit),
+                                    style: TextStyle(
+                                      fontSize:
+                                          MediaQuery.of(context).size.width <
+                                                  600
+                                              ? 11
+                                              : 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: isDesktop ? 8 : 6),
-                    Text(
-                      ArabicTextHelper.cleanText(_details.first.docComment),
-                      style: TextStyle(
-                        fontSize: isDesktop ? 14 : 12,
-                        color: Colors.amber.shade700,
                       ),
                     ),
                   ],
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildPaymentDetails(bool isDesktop, bool isTablet) {
-    if (_details.isEmpty) return const SizedBox();
+  Widget _buildInvoiceDetails() {
+    final items = _details.where((d) => d.item.isNotEmpty).toList();
+    if (items.isEmpty) return const SizedBox();
 
-    final detail = _details.first;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final fixedColumnWidth = screenWidth * 0.45;
+    final scrollableColumnContentWidth =
+        screenWidth > 520 ? screenWidth * 0.55 : 320.0;
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(isDesktop ? 24 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.payment,
-                  color: Colors.green.shade600,
-                  size: isDesktop ? 24 : 20,
-                ),
-                SizedBox(width: isDesktop ? 12 : 8),
-                Text(
-                  'تفاصيل القبض',
-                  style: TextStyle(
-                    fontSize: isDesktop ? 20 : 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: isDesktop ? 20 : 16),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: [
-                  // Header
-                  Container(
-                    padding: EdgeInsets.all(isDesktop ? 16 : 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(8),
-                        topRight: Radius.circular(8),
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Column(
+            children: [
+              // Header section
+              _buildInvoiceHeader(items.length),
+              // Table Header
+              SizedBox(
+                height: 32,
+                child: Row(
+                  children: [
+                    // Fixed header columns
+                    Container(
+                      width: fixedColumnWidth,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade700,
+                        border: Border(
+                          left:
+                              BorderSide(color: Colors.grey.shade500, width: 1),
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                            flex: 1,
-                            child:
-                                Text('#', style: _getHeaderStyle(isDesktop))),
-                        Expanded(
-                            flex: 3,
-                            child: Text('طريقة الدفع',
-                                style: _getHeaderStyle(isDesktop))),
-                        Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
                             flex: 2,
-                            child:
-                                Text('رقم', style: _getHeaderStyle(isDesktop))),
-                        Expanded(
-                            flex: 2,
-                            child: Text('التاريخ',
-                                style: _getHeaderStyle(isDesktop))),
-                        Expanded(
-                            flex: 2,
-                            child: Text('القيمة',
-                                style: _getHeaderStyle(isDesktop))),
-                      ],
-                    ),
-                  ),
-                  // Data Row
-                  Container(
-                    padding: EdgeInsets.all(isDesktop ? 16 : 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade100,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '1',
-                              style: TextStyle(
-                                fontSize: isDesktop ? 12 : 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green.shade700,
+                            child: Center(
+                              child: Text(
+                                'رقم الصنف',
+                                style: TextStyle(
+                                    fontSize:
+                                        MediaQuery.of(context).size.width < 600
+                                            ? 10
+                                            : 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
                               ),
-                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ),
-                        Expanded(
-                          flex: 3,
+                          Expanded(
+                            flex: 4,
+                            child: Center(
+                              child: Text(
+                                'اسم الصنف',
+                                style: TextStyle(
+                                    fontSize:
+                                        MediaQuery.of(context).size.width < 600
+                                            ? 10
+                                            : 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Scrollable header columns
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller: _invoiceHorizontalHeaderController,
+                        child: Container(
+                          width: scrollableColumnContentWidth,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade700,
+                          ),
                           child: Row(
                             children: [
-                              Icon(
-                                detail.check.isEmpty
-                                    ? Icons.payments
-                                    : Icons.receipt,
-                                color: detail.check.isEmpty
-                                    ? Colors.green
-                                    : Colors.blue,
-                                size: isDesktop ? 20 : 16,
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'الكمية',
+                                    style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width <
+                                                    600
+                                                ? 10
+                                                : 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
                               ),
-                              SizedBox(width: isDesktop ? 8 : 6),
-                              Text(
-                                detail.check.isEmpty ? 'كاش' : 'شيكات',
-                                style: _getCellStyle(isDesktop),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'الوحدة',
+                                    style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width <
+                                                    600
+                                                ? 10
+                                                : 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'السعر',
+                                    style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width <
+                                                    600
+                                                ? 10
+                                                : 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'المبلغ',
+                                    style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width <
+                                                    600
+                                                ? 10
+                                                : 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            detail.check.isEmpty ? '-' : detail.checkNumber,
-                            style: _getCellStyle(isDesktop),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            detail.check.isEmpty ? '-' : detail.checkDueDate,
-                            style: _getCellStyle(isDesktop),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isDesktop ? 12 : 8,
-                              vertical: isDesktop ? 8 : 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.green.shade200),
-                            ),
-                            child: Text(
-                              Helpers.formatNumber(detail.credit),
-                              style: TextStyle(
-                                fontSize: isDesktop ? 14 : 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green.shade700,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              // Scrollable Data Rows Container
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _invoiceVerticalController,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Fixed Column Data
+                      SizedBox(
+                        width: fixedColumnWidth,
+                        child: Column(
+                          children: [
+                            for (int index = 0; index < items.length; index++)
+                              _buildInvoiceFixedRowPart(items[index], index),
+                          ],
+                        ),
+                      ),
+                      // Right Scrollable Columns Data
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          controller: _invoiceHorizontalDataController,
+                          child: SizedBox(
+                            width: scrollableColumnContentWidth,
+                            child: Column(
+                              children: [
+                                for (int index = 0;
+                                    index < items.length;
+                                    index++)
+                                  _buildInvoiceScrollableRowPart(
+                                      items[index], index),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Totals Summary
+              _buildTotalsSummary(items),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInvoiceDetails(bool isDesktop, bool isTablet) {
-    final items = _details.where((d) => d.item.isNotEmpty).toList();
+  Widget _buildInvoiceHeader(int itemCount) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade600,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.inventory, color: Colors.white, size: 16),
+          const SizedBox(width: 6),
+          const Text(
+            'الأصناف',
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$itemCount صنف',
+              style: const TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    if (items.isEmpty) return const SizedBox();
+  Widget _buildInvoiceFixedRowPart(
+      models.AccountStatementDetail item, int index) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemCodeFontSize = screenWidth < 600
+        ? 10.0
+        : screenWidth < 1200
+            ? 11.0
+            : 12.0;
+    final itemNameFontSize = screenWidth < 600
+        ? 10.0
+        : screenWidth < 1200
+            ? 11.0
+            : 12.0;
 
-    // Calculate totals
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        color: index % 2 == 0 ? Colors.white : Colors.grey.shade50,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade300, width: 0.5),
+          left: BorderSide(color: Colors.grey.shade500, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Center(
+                child: Text(
+                  item.item,
+                  style: TextStyle(
+                    fontSize: itemCodeFontSize,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Center(
+                child: Text(
+                  ArabicTextHelper.cleanText(item.name),
+                  style: TextStyle(
+                      fontSize: itemNameFontSize, fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInvoiceScrollableRowPart(
+      models.AccountStatementDetail item, int index) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dataFontSize = screenWidth < 600
+        ? 10.0
+        : screenWidth < 1200
+            ? 11.0
+            : 12.0;
+    final unitFontSize = screenWidth < 600
+        ? 9.0
+        : screenWidth < 1200
+            ? 10.0
+            : 11.0;
+
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        color: index % 2 == 0 ? Colors.white : Colors.grey.shade50,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade300, width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Center(
+              child: Text(
+                Helpers.formatNumber(item.quantity),
+                style: TextStyle(
+                    fontSize: dataFontSize, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                item.unit,
+                style: TextStyle(fontSize: unitFontSize, color: Colors.black),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                Helpers.formatNumber(item.price),
+                style: TextStyle(fontSize: dataFontSize),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                Helpers.formatNumber(item.amount),
+                style: TextStyle(
+                  fontSize: dataFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalsSummary(List<models.AccountStatementDetail> items) {
     double totalAmount = 0;
     double tax = 0;
     double discount = 0;
@@ -575,342 +991,92 @@ class _WebStatementDetailScreenState extends State<WebStatementDetailScreen> {
     }
 
     if (items.isNotEmpty) {
-      tax = Helpers.parseNumber(items.last.tax);
-      discount = Helpers.parseNumber(items.last.docDiscount);
+      // Get tax and discount from the last item or first item that has these values
+      for (final item in items) {
+        if (item.tax.isNotEmpty) {
+          tax = Helpers.parseNumber(item.tax);
+        }
+        if (item.docDiscount.isNotEmpty) {
+          discount = Helpers.parseNumber(item.docDiscount);
+        }
+      }
     }
 
-    final afterDiscount = _roundToNearest(totalAmount);
+    // Calculate rounded values based on nearest whole number
+    final roundedTotal = totalAmount.round().toDouble();
+    final calculatedDiscount = totalAmount - roundedTotal;
+    final afterDiscount = roundedTotal;
     final netAmount = afterDiscount;
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+        border: Border(top: BorderSide(color: Colors.grey.shade300)),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(isDesktop ? 24 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.inventory,
-                  color: Colors.blue.shade600,
-                  size: isDesktop ? 24 : 20,
-                ),
-                SizedBox(width: isDesktop ? 12 : 8),
-                Text(
-                  'الأصناف',
-                  style: TextStyle(
-                    fontSize: isDesktop ? 20 : 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 12 : 8,
-                    vertical: isDesktop ? 6 : 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${items.length} صنف',
-                    style: TextStyle(
-                      fontSize: isDesktop ? 12 : 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: isDesktop ? 20 : 16),
-
-            // Items Table
-            Directionality(
-              textDirection: TextDirection.rtl,
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    // Header
-                    Container(
-                      padding: EdgeInsets.all(isDesktop ? 16 : 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          topRight: Radius.circular(8),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                              flex: 1,
-                              child: Text('#',
-                                  style: _getHeaderStyle(isDesktop),
-                                  textAlign: TextAlign.center)),
-                          Expanded(
-                              flex: 2,
-                              child: Text('رقم الصنف',
-                                  style: _getHeaderStyle(isDesktop),
-                                  textAlign: TextAlign.center)),
-                          Expanded(
-                              flex: 4,
-                              child: Text('اسم الصنف',
-                                  style: _getHeaderStyle(isDesktop),
-                                  textAlign: TextAlign.center)),
-                          Expanded(
-                              flex: 2,
-                              child: Text('الكمية',
-                                  style: _getHeaderStyle(isDesktop),
-                                  textAlign: TextAlign.center)),
-                          Expanded(
-                              flex: 2,
-                              child: Text('السعر',
-                                  style: _getHeaderStyle(isDesktop),
-                                  textAlign: TextAlign.center)),
-                          Expanded(
-                              flex: 2,
-                              child: Text('المبلغ',
-                                  style: _getHeaderStyle(isDesktop),
-                                  textAlign: TextAlign.center)),
-                        ],
-                      ),
-                    ),
-                    // Data Rows
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: items.length,
-                      separatorBuilder: (context, index) => Divider(
-                        height: 1,
-                        color: Colors.grey.shade200,
-                      ),
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        return Container(
-                          padding: EdgeInsets.all(isDesktop ? 16 : 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 1,
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade100,
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: TextStyle(
-                                      fontSize: isDesktop ? 11 : 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade700,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  item.item,
-                                  style: _getCellStyle(isDesktop).copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 4,
-                                child: Container(
-                                  width: double.infinity,
-                                  child: Text(
-                                    ArabicTextHelper.cleanText(item.name),
-                                    style: _getCellStyle(isDesktop),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      Helpers.formatNumber(item.quantity),
-                                      style: _getCellStyle(isDesktop).copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    if (item.unit.isNotEmpty)
-                                      Text(
-                                        item.unit,
-                                        style: TextStyle(
-                                          fontSize: isDesktop ? 10 : 9,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  Helpers.formatNumber(item.price),
-                                  style: _getCellStyle(isDesktop),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isDesktop ? 8 : 6,
-                                    vertical: isDesktop ? 6 : 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.shade50,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                        color: Colors.green.shade200),
-                                  ),
-                                  child: Text(
-                                    Helpers.formatNumber(item.amount),
-                                    style: TextStyle(
-                                      fontSize: isDesktop ? 12 : 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green.shade700,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            SizedBox(height: isDesktop ? 24 : 16),
-
-            // Totals Card with RTL alignment
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(isDesktop ? 20 : 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue.shade50, Colors.blue.shade100],
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calculate,
-                        color: Colors.blue.shade700,
-                        size: isDesktop ? 20 : 16,
-                      ),
-                      SizedBox(width: isDesktop ? 8 : 6),
-                      Text(
-                        'ملخص المبالغ',
-                        style: TextStyle(
-                          fontSize: isDesktop ? 16 : 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: isDesktop ? 16 : 12),
-                  _buildTotalRow('المجموع', totalAmount, false, isDesktop),
-                  if (tax > 0)
-                    _buildTotalRow('ضريبة ال 16%', tax, false, isDesktop),
-                  if (discount != 0)
-                    _buildTotalRow('الخصم', discount, false, isDesktop),
-                  _buildTotalRow('بعد الخصم', afterDiscount, false, isDesktop),
-                  Divider(color: Colors.blue.shade300, thickness: 1),
-                  _buildTotalRow('الصافي', netAmount, true, isDesktop),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTotalRow(
-      String label, double amount, bool isNet, bool isDesktop) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: isDesktop ? 6 : 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          Text(
-            Helpers.formatNumber(amount.toString()),
-            style: TextStyle(
-              fontSize: isNet ? (isDesktop ? 18 : 16) : (isDesktop ? 14 : 12),
-              fontWeight: isNet ? FontWeight.bold : FontWeight.w600,
-              color: isNet ? Colors.blue.shade800 : Colors.blue.shade700,
-            ),
-          ),
-          Text(
-            ':$label',
-            style: TextStyle(
-              fontSize: isNet ? (isDesktop ? 18 : 16) : (isDesktop ? 14 : 12),
-              fontWeight: isNet ? FontWeight.bold : FontWeight.w600,
-              color: isNet ? Colors.blue.shade800 : Colors.blue.shade700,
-            ),
-          ),
+          _buildTotalRow('المجموع', totalAmount),
+          // Always show discount if there's a difference from rounded value
+          if (calculatedDiscount != 0) ...[
+            _buildTotalRow('الخصم', calculatedDiscount, isDiscount: true),
+            _buildTotalRow('بعد الخصم', afterDiscount, isAfterDiscount: true),
+          ],
+          if (tax > 0) _buildTotalRow('ضريبة 16%', tax),
+          const Divider(height: 6),
+          _buildTotalRow('الصافي', netAmount, isNet: true),
         ],
       ),
     );
   }
 
-  TextStyle _getHeaderStyle(bool isDesktop) {
-    return TextStyle(
-      fontSize: isDesktop ? 14 : 12,
-      fontWeight: FontWeight.bold,
-      color: Colors.grey.shade700,
-    );
-  }
+  Widget _buildTotalRow(String label, double amount,
+      {bool isNet = false,
+      bool isDiscount = false,
+      bool isAfterDiscount = false}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final fontSize = screenWidth < 600
+        ? 11.0
+        : screenWidth < 1200
+            ? 12.0
+            : 13.0;
+    final netFontSize = screenWidth < 600
+        ? 12.0
+        : screenWidth < 1200
+            ? 13.0
+            : 14.0;
 
-  TextStyle _getCellStyle(bool isDesktop) {
-    return TextStyle(
-      fontSize: isDesktop ? 13 : 11,
-      color: Colors.black87,
-    );
-  }
-
-  double _roundToNearest(double amount) {
-    final decimal = amount - amount.floor();
-    if (decimal >= 0.5) {
-      return amount.ceil().toDouble();
-    } else {
-      return amount.floor().toDouble();
+    Color textColor = Colors.grey.shade700;
+    if (isNet) {
+      textColor = Colors.black87;
+    } else if (isDiscount) {
+      textColor = Colors.grey.shade600;
     }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$label:',
+            style: TextStyle(
+              fontSize: isNet ? netFontSize : fontSize,
+              fontWeight: isNet ? FontWeight.bold : FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+          Text(
+            Helpers.formatNumber(amount.toString()),
+            style: TextStyle(
+              fontSize: isNet ? netFontSize : fontSize,
+              fontWeight: isNet ? FontWeight.bold : FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
