@@ -1,4 +1,4 @@
-// lib/screens/web/date_selection_screen.dart
+// lib/screens/web/web_date_selection_screen.dart
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../models/contact.dart';
@@ -179,6 +179,7 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
+<<<<<<< HEAD:lib/screens/web/date_selection_screen.dart
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -201,6 +202,77 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Colors.blue.shade700,
+=======
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          isDesktop
+              ? 'كشف حساب - ${ArabicTextHelper.cleanText(widget.contact.nameAr)}'
+              : 'كشف الحساب',
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (isDesktop) {
+            return _buildDesktopLayout(constraints);
+          } else {
+            return _buildMobileLayout(constraints);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout(BoxConstraints constraints) {
+    return Center(
+      child: SizedBox(
+        width: 500,
+        height: constraints.maxHeight,
+        child: _buildDateSelectionPanel(true, constraints.maxHeight),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BoxConstraints constraints) {
+    return _buildDateSelectionPanel(false, constraints.maxHeight);
+  }
+
+  Widget _buildDateSelectionPanel(bool isDesktop, double maxHeight) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Contact Info Header - Fixed height
+          Container(
+            padding: EdgeInsets.all(isDesktop ? 16 : 12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: isDesktop ? 24 : 20,
+                  backgroundColor: Colors.blue.shade100,
+                  child: Text(
+                    widget.contact.nameAr.isNotEmpty
+                        ? widget.contact.nameAr[0]
+                        : '؟',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 16 : 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade700,
+                    ),
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_date_selection_screen.dart
                   ),
                 ),
               ),

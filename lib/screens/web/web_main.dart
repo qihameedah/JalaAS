@@ -1,21 +1,8 @@
 // lib/web/web_main.dart - Web Entry Point
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/supabase_service.dart';
-import '../screens/web/web_login_screen.dart';
-import '../utils/constants.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    await SupabaseService.initialize();
-  } catch (e) {
-    print('Failed to initialize Supabase: $e');
-  }
-
-  runApp(const WebApp());
-}
+import 'web_login_screen.dart';
+import '../../utils/constants.dart';
 
 class WebApp extends StatelessWidget {
   const WebApp({super.key});

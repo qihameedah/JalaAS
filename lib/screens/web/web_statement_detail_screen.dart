@@ -7,7 +7,6 @@ import '../../models/account_statement.dart';
 import '../../models/account_statement.dart' as models;
 import '../../services/api_service.dart';
 import '../../services/pdf_service.dart';
-import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../utils/arabic_text_helper.dart';
 
@@ -1015,6 +1014,7 @@ class _WebStatementDetailScreenState extends State<WebStatementDetailScreen> {
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
         border: Border(top: BorderSide(color: Colors.grey.shade300)),
       ),
+<<<<<<< HEAD
       child: Column(
         children: [
           _buildTotalRow('المجموع', totalAmount),
@@ -1022,6 +1022,277 @@ class _WebStatementDetailScreenState extends State<WebStatementDetailScreen> {
           if (calculatedDiscount != 0) ...[
             _buildTotalRow('الخصم', calculatedDiscount, isDiscount: true),
             _buildTotalRow('بعد الخصم', afterDiscount, isAfterDiscount: true),
+=======
+      child: Padding(
+        padding: EdgeInsets.all(isDesktop ? 24 : 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.inventory,
+                  color: Colors.blue.shade600,
+                  size: isDesktop ? 24 : 20,
+                ),
+                SizedBox(width: isDesktop ? 12 : 8),
+                Text(
+                  'الأصناف',
+                  style: TextStyle(
+                    fontSize: isDesktop ? 20 : 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop ? 12 : 8,
+                    vertical: isDesktop ? 6 : 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${items.length} صنف',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 12 : 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: isDesktop ? 20 : 16),
+
+            // Items Table
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    // Header
+                    Container(
+                      padding: EdgeInsets.all(isDesktop ? 16 : 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                              flex: 1,
+                              child: Text('#',
+                                  style: _getHeaderStyle(isDesktop),
+                                  textAlign: TextAlign.center)),
+                          Expanded(
+                              flex: 2,
+                              child: Text('رقم الصنف',
+                                  style: _getHeaderStyle(isDesktop),
+                                  textAlign: TextAlign.center)),
+                          Expanded(
+                              flex: 4,
+                              child: Text('اسم الصنف',
+                                  style: _getHeaderStyle(isDesktop),
+                                  textAlign: TextAlign.center)),
+                          Expanded(
+                              flex: 2,
+                              child: Text('الكمية',
+                                  style: _getHeaderStyle(isDesktop),
+                                  textAlign: TextAlign.center)),
+                          Expanded(
+                              flex: 2,
+                              child: Text('السعر',
+                                  style: _getHeaderStyle(isDesktop),
+                                  textAlign: TextAlign.center)),
+                          Expanded(
+                              flex: 2,
+                              child: Text('المبلغ',
+                                  style: _getHeaderStyle(isDesktop),
+                                  textAlign: TextAlign.center)),
+                        ],
+                      ),
+                    ),
+                    // Data Rows
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: items.length,
+                      separatorBuilder: (context, index) => Divider(
+                        height: 1,
+                        color: Colors.grey.shade200,
+                      ),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return Container(
+                          padding: EdgeInsets.all(isDesktop ? 16 : 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade100,
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: TextStyle(
+                                      fontSize: isDesktop ? 11 : 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  item.item,
+                                  style: _getCellStyle(isDesktop).copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 4,
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: Text(
+                                    ArabicTextHelper.cleanText(item.name),
+                                    style: _getCellStyle(isDesktop),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      Helpers.formatNumber(item.quantity),
+                                      style: _getCellStyle(isDesktop).copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    if (item.unit.isNotEmpty)
+                                      Text(
+                                        item.unit,
+                                        style: TextStyle(
+                                          fontSize: isDesktop ? 10 : 9,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  Helpers.formatNumber(item.price),
+                                  style: _getCellStyle(isDesktop),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isDesktop ? 8 : 6,
+                                    vertical: isDesktop ? 6 : 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade50,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                        color: Colors.green.shade200),
+                                  ),
+                                  child: Text(
+                                    Helpers.formatNumber(item.amount),
+                                    style: TextStyle(
+                                      fontSize: isDesktop ? 12 : 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green.shade700,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SizedBox(height: isDesktop ? 24 : 16),
+
+            // Totals Card with RTL alignment
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(isDesktop ? 20 : 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade50, Colors.blue.shade100],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calculate,
+                        color: Colors.blue.shade700,
+                        size: isDesktop ? 20 : 16,
+                      ),
+                      SizedBox(width: isDesktop ? 8 : 6),
+                      Text(
+                        'ملخص المبالغ',
+                        style: TextStyle(
+                          fontSize: isDesktop ? 16 : 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isDesktop ? 16 : 12),
+                  _buildTotalRow('المجموع', totalAmount, false, isDesktop),
+                  if (tax > 0)
+                    _buildTotalRow('ضريبة ال 16%', tax, false, isDesktop),
+                  if (discount != 0)
+                    _buildTotalRow('الخصم', discount, false, isDesktop),
+                  _buildTotalRow('بعد الخصم', afterDiscount, false, isDesktop),
+                  Divider(color: Colors.blue.shade300, thickness: 1),
+                  _buildTotalRow('الصافي', netAmount, true, isDesktop),
+                ],
+              ),
+            ),
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f
           ],
           if (tax > 0) _buildTotalRow('ضريبة 16%', tax),
           const Divider(height: 6),

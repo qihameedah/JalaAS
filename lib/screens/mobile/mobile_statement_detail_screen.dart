@@ -1,4 +1,4 @@
-// lib/screens/mobile/statement_detail_screen.dart
+// lib/screens/mobile/mobile_statement_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import '../../models/contact.dart';

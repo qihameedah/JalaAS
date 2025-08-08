@@ -10,7 +10,7 @@ class SupabaseService {
     await Supabase.initialize(
       url: 'https://ykwnsmyvkwjctidhoqib.supabase.co',
       anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlrd25zbXl2a3dqY3RpZGhvcWliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExOTkzMzYsImV4cCI6MjA2Njc3NTMzNn0.W6WYYc-s24kX2H_-9bvWe1nG31lDlFCSVnDSqIKD5xk',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlrd25zbXl2a3dqY3RpZGhvcWliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExOTkzMzYsImV4cCI6MjA2Njc3NTMzNn0.W6WYYc-s24kX2H_-9bvWe1nG31lDlFCSVnDSqIKD5xk',
     );
   }
 
@@ -102,7 +102,7 @@ class SupabaseService {
       if (user == null) return null;
 
       final response =
-          await _client.from('users').select().eq('id', user.id).single();
+      await _client.from('users').select().eq('id', user.id).single();
 
       return AppUser.fromJson(response);
     } catch (e) {

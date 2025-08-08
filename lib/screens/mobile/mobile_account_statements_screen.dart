@@ -1,4 +1,4 @@
-// lib/screens/mobile/account_statements_screen.dart
+// lib/screens/mobile/mobile_account_statements_screen.dart
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import '../../models/contact.dart';
@@ -8,7 +8,7 @@ import '../../services/pdf_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../utils/arabic_text_helper.dart';
-import 'statement_detail_screen.dart';
+import 'mobile_statement_detail_screen.dart';
 
 class AccountStatementsScreen extends StatefulWidget {
   final Contact contact;

@@ -1,11 +1,11 @@
-// lib/screens/web/contact_selection_screen.dart
+// lib/screens/web/web_contact_selection_screen.dart
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../models/contact.dart';
 import '../../services/supabase_service.dart';
 import '../../utils/helpers.dart';
 import '../../utils/arabic_text_helper.dart';
-import 'date_selection_screen.dart';
+import 'web_date_selection_screen.dart';
 import 'web_login_screen.dart';
 
 class ContactSelectionScreen extends StatefulWidget {
@@ -53,9 +53,9 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
     } else {
       _filteredContacts = _allContacts.where((contact) {
         final nameMatch =
-            contact.nameAr.toLowerCase().contains(_searchQuery.toLowerCase());
+        contact.nameAr.toLowerCase().contains(_searchQuery.toLowerCase());
         final codeMatch =
-            contact.code.toLowerCase().contains(_searchQuery.toLowerCase());
+        contact.code.toLowerCase().contains(_searchQuery.toLowerCase());
         return nameMatch || codeMatch;
       }).toList();
     }
@@ -165,6 +165,7 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
+<<<<<<< HEAD:lib/screens/web/contact_selection_screen.dart
         backgroundColor: Colors.grey.shade50,
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -210,6 +211,21 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
             ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.black87),
+=======
+        appBar: AppBar(
+          title: const Text('اختيار العميل'),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: Text(
+                  'مرحباً، ${widget.user.username}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+            PopupMenuButton<String>(
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_contact_selection_screen.dart
               onSelected: (value) {
                 if (value == 'logout') {
                   _logout();
@@ -220,6 +236,7 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
               itemBuilder: (context) => [
                 const PopupMenuItem(
                   value: 'refresh',
+<<<<<<< HEAD:lib/screens/web/contact_selection_screen.dart
                   child: Directionality(
                     textDirection: TextDirection.rtl,
                     child: Row(
@@ -229,10 +246,19 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                         Text('تحديث', style: TextStyle(color: Colors.black87)),
                       ],
                     ),
+=======
+                  child: Row(
+                    children: [
+                      Icon(Icons.refresh),
+                      SizedBox(width: 8),
+                      Text('تحديث'),
+                    ],
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_contact_selection_screen.dart
                   ),
                 ),
                 const PopupMenuItem(
                   value: 'logout',
+<<<<<<< HEAD:lib/screens/web/contact_selection_screen.dart
                   child: Directionality(
                     textDirection: TextDirection.rtl,
                     child: Row(
@@ -243,22 +269,162 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                             style: TextStyle(color: Colors.red)),
                       ],
                     ),
+=======
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout),
+                      SizedBox(width: 8),
+                      Text('تسجيل الخروج'),
+                    ],
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_contact_selection_screen.dart
                   ),
                 ),
               ],
             ),
+<<<<<<< HEAD:lib/screens/web/contact_selection_screen.dart
             const SizedBox(width: 8),
+=======
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_contact_selection_screen.dart
           ],
         ),
         body: Column(
           children: [
+<<<<<<< HEAD:lib/screens/web/contact_selection_screen.dart
             _buildCompactSearchHeader(),
+=======
+            // Search Header
+            Container(
+              padding: EdgeInsets.all(isDesktop ? 24 : 16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey.shade200),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.people, color: Colors.blue.shade600),
+                      const SizedBox(width: 8),
+                      Text(
+                        'العملاء',
+                        style: TextStyle(
+                          fontSize: isDesktop ? 24 : 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade800,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (_isLoading)
+                        SizedBox()
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade100,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'العدد: ${_filteredContacts.length}',
+                            style: TextStyle(
+                              color: Colors.blue.shade800,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Search Bar
+                  Container(
+                    constraints: BoxConstraints(
+                      maxWidth: isDesktop ? 600 : double.infinity,
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'ابحث عن عميل بالاسم أو الرقم...',
+                        suffixIcon: const Icon(Icons.search),
+                        prefixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                        )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 20),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_contact_selection_screen.dart
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredContacts.isEmpty
+<<<<<<< HEAD:lib/screens/web/contact_selection_screen.dart
                       ? _buildEmptyState()
                       : _buildContactsList(),
+=======
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.search_off,
+                      size: 64,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _searchQuery.isEmpty
+                          ? 'لا يوجد عملاء'
+                          : 'لا توجد نتائج للبحث "$_searchQuery"',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey.shade600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+                  : Padding(
+                padding: EdgeInsets.all(isDesktop ? 24 : 16),
+                child: GridView.builder(
+                  gridDelegate:
+                  SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: _getCrossAxisCount(screenWidth),
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: isDesktop ? 3.5 : 4,
+                  ),
+                  itemCount: _filteredContacts.length,
+                  itemBuilder: (context, index) {
+                    final contact = _filteredContacts[index];
+                    return _ContactCard(
+                      contact: contact,
+                      onTap: () => _selectContact(contact),
+                      isDesktop: isDesktop,
+                    );
+                  },
+                ),
+              ),
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_contact_selection_screen.dart
             ),
           ],
         ),
@@ -458,8 +624,14 @@ class _CompactContactCardState extends State<_CompactContactCard> {
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
+<<<<<<< HEAD:lib/screens/web/contact_selection_screen.dart
                   size: 14,
                   color: Colors.grey.shade400,
+=======
+                  size: widget.isDesktop ? 16 : 14,
+                  color:
+                  _isHovered ? Colors.blue.shade600 : Colors.grey.shade400,
+>>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_contact_selection_screen.dart
                 ),
               ],
             ),

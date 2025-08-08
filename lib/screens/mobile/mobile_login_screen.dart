@@ -1,9 +1,9 @@
-// lib/screens/mobile/login_screen.dart
+// lib/screens/mobile/mobile_login_screen.dart
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
-import 'contact_selection_screen.dart';
+import 'mobile_contact_selection_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

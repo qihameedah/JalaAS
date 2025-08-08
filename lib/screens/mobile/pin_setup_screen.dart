@@ -1,6 +1,6 @@
 // lib/screens/mobile/pin_setup_screen.dart
 import 'package:flutter/material.dart';
-import 'package:jala_as/screens/mobile/login_screen.dart';
+import 'package:jala_as/screens/mobile/mobile_login_screen.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
