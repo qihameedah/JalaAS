@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // lib/main.dart - Updated with Better Internet Handling
 
 import 'package:flutter/material.dart';
@@ -7,12 +6,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import 'dart:io';
-=======
-// lib/main.dart - Mobile Entry Point
-import 'package:flutter/material.dart';
-import 'package:jala_as/utils/responsive.dart';
->>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f
 import 'services/supabase_service.dart';
+import 'screens/mobile/pin_setup_screen.dart';
+import 'screens/mobile/pin_enter_screen.dart';
+import 'screens/mobile/login_screen.dart';
+import 'screens/mobile/contact_selection_screen.dart';
+import 'screens/mobile/no_internet_screen.dart';
+import 'utils/constants.dart';
+import 'utils/helpers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +24,6 @@ void main() async {
     print('Failed to initialize Supabase: $e');
   }
 
-<<<<<<< HEAD
   runApp(const MyApp());
 }
 
@@ -485,7 +485,4 @@ class _AppInitializerState extends State<AppInitializer>
       ),
     );
   }
-=======
-  runApp(const Responsive());
->>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f
 }
