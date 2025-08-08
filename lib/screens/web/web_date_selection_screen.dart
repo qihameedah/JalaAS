@@ -57,17 +57,12 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
       icon: Icons.calendar_today,
       color: Colors.teal,
     ),
-    DatePeriod(
-      id: 'last_30',
-      title: 'آخر 30 يوم',
-      icon: Icons.history,
-      color: Colors.indigo,
-    ),
   ];
 
   @override
   void initState() {
     super.initState();
+    // Default to this month
     _selectPredefinedPeriod('this_month');
   }
 
@@ -101,12 +96,6 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
           _fromDate = DateTime(now.year, 1, 1);
           _toDate = now;
           break;
-        case 'last_30':
-          _fromDate = now.subtract(const Duration(days: 30));
-          _fromDate =
-              DateTime(_fromDate!.year, _fromDate!.month, _fromDate!.day);
-          _toDate = now;
-          break;
       }
     });
   }
@@ -118,12 +107,6 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
           isFromDate ? _fromDate ?? DateTime.now() : _toDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -136,7 +119,7 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
         } else {
           _toDate = picked;
         }
-        _selectedPeriod = '';
+        _selectedPeriod = ''; // Clear selected period when manually editing
       });
     }
   }
@@ -155,6 +138,7 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
       _isLoadingStatements = true;
     });
 
+    // Navigate to results screen
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -166,6 +150,7 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
         ),
       ),
     ).then((_) {
+      // Reset loading state when returning
       if (mounted) {
         setState(() {
           _isLoadingStatements = false;
@@ -178,31 +163,9 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final isDesktop = screenWidth > 900;
+    final isTablet = screenWidth > 600 && screenWidth <= 900;
 
-<<<<<<< HEAD:lib/screens/web/date_selection_screen.dart
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 1,
-          iconTheme: const IconThemeData(color: Colors.black87),
-          title: Row(
-            children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.blue.shade100,
-                child: Text(
-                  widget.contact.nameAr.isNotEmpty
-                      ? widget.contact.nameAr[0]
-                      : '؟',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
-=======
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -272,193 +235,217 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
                       fontWeight: FontWeight.bold,
                       color: Colors.blue.shade700,
                     ),
->>>>>>> b20a8dd912970bf0f1612c5dd009e1271fe9847f:lib/screens/web/web_date_selection_screen.dart
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  ArabicTextHelper.cleanText(widget.contact.nameAr),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildCompactContactInfo(),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                SizedBox(width: isDesktop ? 12 : 8),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'اختر الفترة الزمنية',
+                      Text(
+                        ArabicTextHelper.cleanText(widget.contact.nameAr),
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: isDesktop ? 16 : 14,
                           fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                      const SizedBox(height: 16),
-                      _buildQuickSelectionGrid(),
-                      const SizedBox(height: 20),
-                      _buildCustomDateSelection(),
-                      const SizedBox(height: 20),
-                      _buildLoadButton(),
+                      const SizedBox(height: 2),
+                      Text(
+                        'رقم العميل: ${widget.contact.code}',
+                        style: TextStyle(
+                          fontSize: isDesktop ? 12 : 10,
+                          color: Colors.grey.shade600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildCompactContactInfo() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      color: Colors.white,
-      child: Row(
-        children: [
-          Icon(Icons.calendar_today, color: Colors.blue.shade600, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            'رقم العميل: ${widget.contact.code}',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
+          // Scrollable Content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(isDesktop ? 16 : 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title
+                  Text(
+                    'اختر الفترة الزمنية',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 18 : 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: isDesktop ? 16 : 12),
+
+                  // Quick Selection Buttons
+                  Text(
+                    'اختيار سريع:',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 14 : 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _predefinedPeriods.map((period) {
+                      final isSelected = _selectedPeriod == period.id;
+                      return InkWell(
+                        onTap: () => _selectPredefinedPeriod(period.id),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isDesktop ? 12 : 10,
+                            vertical: isDesktop ? 8 : 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? period.color.shade100
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected
+                                  ? period.color
+                                  : Colors.grey.shade300,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                period.icon,
+                                size: isDesktop ? 16 : 14,
+                                color: isSelected
+                                    ? period.color
+                                    : Colors.grey.shade600,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                period.title,
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 12 : 10,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? period.color
+                                      : Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  SizedBox(height: isDesktop ? 20 : 16),
+
+                  // Date Input Fields - Always Visible
+                  Text(
+                    'تخصيص التواريخ:',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 14 : 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // From and To Date Fields
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildDateField(
+                            'من تاريخ', _fromDate, true, isDesktop),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildDateField(
+                            'إلى تاريخ', _toDate, false, isDesktop),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: isDesktop ? 16 : 12),
+
+                  // Load Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: (_fromDate != null &&
+                              _toDate != null &&
+                              !_isLoadingStatements)
+                          ? _loadStatements
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        padding:
+                            EdgeInsets.symmetric(vertical: isDesktop ? 14 : 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoadingStatements
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'جاري التحميل...',
+                                  style:
+                                      TextStyle(fontSize: isDesktop ? 14 : 12),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'عرض كشف الحساب',
+                              style: TextStyle(fontSize: isDesktop ? 14 : 12),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const Spacer(),
-          if (_fromDate != null && _toDate != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '${Helpers.formatDisplayDate(_fromDate!)} - ${Helpers.formatDisplayDate(_toDate!)}',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.blue.shade700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickSelectionGrid() {
+  Widget _buildDateField(
+      String label, DateTime? date, bool isFromDate, bool isDesktop) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'اختيار سريع:',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _predefinedPeriods.map((period) {
-            final isSelected = _selectedPeriod == period.id;
-
-            return InkWell(
-              onTap: () => _selectPredefinedPeriod(period.id),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? period.color.shade100 : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isSelected ? period.color : Colors.grey.shade300,
-                    width: isSelected ? 2 : 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      period.icon,
-                      size: 14,
-                      color: isSelected ? period.color : Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      period.title,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected ? period.color : Colors.grey.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCustomDateSelection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'تخصيص التواريخ:',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _buildCompactDateField('من تاريخ', _fromDate, true),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildCompactDateField('إلى تاريخ', _toDate, false),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCompactDateField(String label, DateTime? date, bool isFromDate) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: isDesktop ? 12 : 10,
             fontWeight: FontWeight.bold,
             color: Colors.grey.shade700,
           ),
@@ -467,12 +454,14 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
         InkWell(
           onTap: () => _selectCustomDate(isFromDate),
           child: Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: isDesktop ? 12 : 10,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
               children: [
@@ -482,15 +471,16 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
                         ? Helpers.formatDisplayDate(date)
                         : 'اختر التاريخ',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: isDesktop ? 12 : 11,
                       color:
                           date != null ? Colors.black87 : Colors.grey.shade500,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Icon(
                   Icons.calendar_today,
-                  size: 16,
+                  size: isDesktop ? 16 : 14,
                   color: Colors.grey.shade600,
                 ),
               ],
@@ -498,53 +488,6 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildLoadButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: ElevatedButton(
-        onPressed:
-            (_fromDate != null && _toDate != null && !_isLoadingStatements)
-                ? _loadStatements
-                : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade600,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          elevation: 0,
-        ),
-        child: _isLoadingStatements
-            ? const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Text('جاري التحميل...', style: TextStyle(fontSize: 14)),
-                ],
-              )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.receipt_long, size: 20),
-                  SizedBox(width: 8),
-                  Text('عرض كشف الحساب',
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                ],
-              ),
-      ),
     );
   }
 }
