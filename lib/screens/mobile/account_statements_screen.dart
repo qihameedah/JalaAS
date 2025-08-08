@@ -30,7 +30,7 @@ class AccountStatementsScreen extends StatefulWidget {
 class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
   List<AccountStatement> _statements = [];
   bool _isLoading = true;
-  bool _isCardView = true;
+  bool _isCardView = false; // Changed default to false (table view)
   bool _isGeneratingPdf = false;
 
   // Controllers for horizontal scrolling (header and data)
@@ -154,18 +154,40 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('كشف الحساب'),
+        backgroundColor: const Color(AppConstants.primaryColor),
+        foregroundColor: Colors.white,
+        elevation: 2,
         actions: [
-          IconButton(
-            icon: Icon(_isCardView ? Icons.table_rows : Icons.view_agenda),
-            onPressed: () {
-              setState(() {
-                _isCardView = !_isCardView;
-              });
-            },
-            tooltip: _isCardView ? 'عرض جدولي' : 'عرض بطاقات',
+          // View toggle button
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: ToggleButtons(
+              isSelected: [!_isCardView, _isCardView],
+              onPressed: (int index) {
+                setState(() {
+                  _isCardView = index == 1;
+                });
+              },
+              borderRadius: BorderRadius.circular(8),
+              selectedBorderColor: const Color(AppConstants.accentColor),
+              selectedColor: Colors.white,
+              fillColor: const Color(AppConstants.accentColor),
+              borderColor: Colors.white54,
+              color: Colors.white,
+              constraints: const BoxConstraints(
+                minHeight: 36,
+                minWidth: 36,
+              ),
+              children: const [
+                Icon(Icons.table_rows, size: 18),
+                Icon(Icons.view_agenda, size: 18),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           if (_statements.isNotEmpty)
             IconButton(
               icon: _isGeneratingPdf
@@ -188,39 +210,165 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: const BoxConstraints(maxWidth: 800),
           child: Column(
             children: [
-              // Contact Info Header
+              // Enhanced Contact Info Header
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                color: Colors.blue[50],
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 0),
+                    ),
+                  ],
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      ArabicTextHelper.cleanText(widget.contact.nameAr),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    // Contact Avatar
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: const Color(AppConstants.accentColor),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(AppConstants.accentColor)
+                                .withOpacity(0.3),
+                            blurRadius: 8,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.contact.nameAr.isNotEmpty
+                              ? widget.contact.nameAr[0]
+                              : 'ع',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'رقم العميل: ${widget.contact.code}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+
+                    const SizedBox(width: 16),
+
+                    // Contact Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ArabicTextHelper.cleanText(widget.contact.nameAr),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppConstants.primaryColor),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(AppConstants.accentColor)
+                                      .withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '#',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        const Color(AppConstants.accentColor),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                widget.contact.code,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(AppConstants.accentColor),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.date_range,
+                                size: 14,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${Helpers.formatDisplayDate(DateTime.parse(widget.fromDate))} - ${Helpers.formatDisplayDate(DateTime.parse(widget.toDate))}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    Text(
-                      'الفترة: ${Helpers.formatDisplayDate(DateTime.parse(widget.fromDate))} - ${Helpers.formatDisplayDate(DateTime.parse(widget.toDate))}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+
+                    // Statements count badge
+                    if (_statements.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(AppConstants.primaryColor)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(AppConstants.primaryColor)
+                                .withOpacity(0.3),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '${_statements.length}',
+                              style: const TextStyle(
+                                color: Color(AppConstants.primaryColor),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              'حركة',
+                              style: TextStyle(
+                                color: const Color(AppConstants.primaryColor),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -228,35 +376,112 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
               // Content
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.06),
+                                    blurRadius: 20,
+                                    spreadRadius: 2,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                ],
+                              ),
+                              child: const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(AppConstants.accentColor)),
+                                strokeWidth: 3,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'جاري تحميل كشف الحساب...',
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryColor),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
                     : _statements.isEmpty
                         ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.receipt_long_outlined,
-                                  size: 64,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'لا توجد حركات في هذه الفترة',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey[600],
+                            child: Container(
+                              padding: const EdgeInsets.all(32),
+                              margin: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 12,
+                                    spreadRadius: 2,
+                                    offset: const Offset(0, 0),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextButton(
-                                  onPressed: _loadStatements,
-                                  child: const Text('إعادة التحميل'),
-                                ),
-                              ],
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.receipt_long_outlined,
+                                    size: 80,
+                                    color: Colors.grey[300],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    'لا توجد حركات في هذه الفترة',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'لم يتم العثور على أي معاملات خلال الفترة المحددة',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[500],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  ElevatedButton(
+                                    onPressed: _loadStatements,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          const Color(AppConstants.accentColor),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 24, vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text(
+                                      'إعادة التحميل',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           )
                         : _isCardView
-                            ? _buildCardView()
+                            ? _buildEnhancedCardView()
                             : _buildTableView(),
               ),
             ],
@@ -264,6 +489,378 @@ class _AccountStatementsScreenState extends State<AccountStatementsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildEnhancedCardView() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ListView.builder(
+        itemCount: _statements.length,
+        itemBuilder: (context, index) {
+          final statement = _statements[index];
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 0),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: statement.documentType == 'other'
+                    ? null
+                    : () => _viewStatementDetail(statement),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header row with document type and date
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color:
+                                  _getDocumentTypeColor(statement.documentType),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _getDocumentTypeColor(
+                                          statement.documentType)
+                                      .withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _getDocumentTypeIcon(statement.documentType),
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  Helpers.getDocumentTypeInArabic(
+                                      statement.documentType),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.calendar_today,
+                                  size: 12,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  statement.docDate,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Document name/description
+                      Text(
+                        ArabicTextHelper.cleanText(statement.displayName),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(AppConstants.primaryColor),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Financial data in enhanced layout
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[25],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // Debit
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.trending_up,
+                                        size: 16,
+                                        color: Colors.red[600],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'مدين',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.red[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    Helpers.formatNumber(statement.debit),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: statement.debit.isNotEmpty
+                                          ? Colors.red[600]
+                                          : Colors.grey[400],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Divider
+                            Container(
+                              width: 1,
+                              height: 40,
+                              color: Colors.grey[300],
+                            ),
+
+                            // Credit
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.trending_down,
+                                        size: 16,
+                                        color: Colors.green[600],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'دائن',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.green[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    Helpers.formatNumber(statement.credit),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: statement.credit.isNotEmpty
+                                          ? Colors.green[600]
+                                          : Colors.grey[400],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Divider
+                            Container(
+                              width: 1,
+                              height: 40,
+                              color: Colors.grey[300],
+                            ),
+
+                            // Balance
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.account_balance_wallet,
+                                        size: 16,
+                                        color: const Color(
+                                            AppConstants.accentColor),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'الرصيد',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(
+                                              AppConstants.accentColor),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    Helpers.formatNumber(
+                                        statement.runningBalance),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(AppConstants.accentColor),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Comment section if exists
+                      if (statement.docComment.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[25],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.blue[200]!,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.comment,
+                                size: 16,
+                                color: Colors.blue[600],
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  ArabicTextHelper.cleanText(
+                                      statement.docComment),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.blue[700],
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Action indicator
+                      if (statement.documentType != 'other') ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(AppConstants.primaryColor)
+                                    .withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'عرض التفاصيل',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(
+                                          AppConstants.primaryColor),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 12,
+                                    color:
+                                        const Color(AppConstants.primaryColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+// Helper method to get document type icons
+  IconData _getDocumentTypeIcon(String documentType) {
+    switch (documentType) {
+      case 'invoice':
+        return Icons.receipt;
+      case 'return':
+        return Icons.undo;
+      case 'payment':
+        return Icons.payment;
+      default:
+        return Icons.description;
+    }
   }
 
   Widget _buildCardView() {

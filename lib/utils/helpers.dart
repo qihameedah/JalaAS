@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:jala_as/utils/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'dart:io';
@@ -60,27 +61,217 @@ class Helpers {
     }
   }
 
-  // Internet Connection Methods
+  // ========== IMPROVED INTERNET CONNECTION METHODS ==========
+
+// ========== SIMPLE NON-BLOCKING INTERNET CONNECTION METHODS ==========
+
+// Internet connection monitoring
+  static StreamSubscription? _connectivitySubscription;
+
+// Main internet connection check - Simple and fast
   static Future<bool> hasInternetConnection() async {
     try {
-      final connectivityResult = await Connectivity().checkConnectivity();
+      logDebug('Quick internet connection check...');
 
-      if (connectivityResult == ConnectivityResult.none) {
-        return false;
-      }
-
-      // Additional check by trying to reach a reliable host
-      try {
-        final result = await InternetAddress.lookup('google.com');
-        return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-      } on SocketException catch (_) {
-        return false;
-      }
+      // Skip connectivity_plus entirely for now and test directly
+      return await _quickInternetTest();
     } catch (e) {
-      print('Error checking internet connection: $e');
+      logError('Error in hasInternetConnection', e);
       return false;
     }
   }
+
+// Quick internet test that won't freeze the app
+  static Future<bool> _quickInternetTest() async {
+    try {
+      // Very quick DNS lookup with short timeout
+      final result = await InternetAddress.lookup('8.8.8.8').timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => throw TimeoutException('DNS timeout'),
+      );
+
+      if (result.isNotEmpty) {
+        logDebug('✓ Quick DNS test successful');
+        return true;
+      }
+    } catch (e) {
+      logDebug('DNS test failed: $e');
+    }
+
+    try {
+      // Fallback: Very quick HTTP HEAD request with aggressive timeout
+      final client = http.Client();
+      final request = http.Request('HEAD', Uri.parse('https://www.google.com'));
+      request.headers['User-Agent'] = 'QuickCheck';
+
+      final streamedResponse = await client.send(request).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          client.close();
+          throw TimeoutException('HTTP timeout');
+        },
+      );
+
+      client.close();
+
+      if (streamedResponse.statusCode >= 200 &&
+          streamedResponse.statusCode < 400) {
+        logDebug('✓ Quick HTTP test successful');
+        return true;
+      }
+    } catch (e) {
+      logDebug('HTTP test failed: $e');
+    }
+
+    logDebug('✗ All quick tests failed - no internet');
+    return false;
+  }
+
+// Ultra-quick check for frequent use
+  static Future<bool> hasInternetConnectionQuick() async {
+    try {
+      // Only DNS test with very short timeout
+      final result = await InternetAddress.lookup('8.8.8.8').timeout(
+        const Duration(milliseconds: 1500),
+      );
+      return result.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+// Simple connectivity monitoring without blocking
+  static void startInternetMonitoring({
+    required Function(bool isConnected) onConnectivityChanged,
+  }) {
+    stopInternetMonitoring();
+
+    // Use a simple timer-based approach instead of connectivity_plus
+    Timer.periodic(const Duration(seconds: 5), (timer) async {
+      try {
+        final isConnected = await hasInternetConnectionQuick();
+        onConnectivityChanged(isConnected);
+      } catch (e) {
+        logError('Error in connectivity monitoring', e);
+        onConnectivityChanged(false);
+      }
+    });
+  }
+
+  static void stopInternetMonitoring() {
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
+  }
+
+// Simple connection info without complex tests
+  static Future<Map<String, dynamic>> getDetailedConnectionInfo() async {
+    final result = <String, dynamic>{
+      'hasInternet': false,
+      'connectivityType': 'testing',
+      'details': <String>[],
+    };
+
+    final details = result['details'] as List<String>;
+
+    try {
+      details.add('Starting quick connection test...');
+
+      // Quick DNS test
+      try {
+        final dnsResult = await InternetAddress.lookup('8.8.8.8').timeout(
+          const Duration(seconds: 3),
+        );
+        if (dnsResult.isNotEmpty) {
+          details.add('✓ DNS test: Success');
+          result['hasInternet'] = true;
+          result['connectivityType'] = 'connected';
+        } else {
+          details.add('✗ DNS test: No results');
+        }
+      } catch (e) {
+        details.add('✗ DNS test: Failed ($e)');
+      }
+
+      // Only do HTTP test if DNS failed
+      if (!(result['hasInternet'] as bool)) {
+        try {
+          final client = http.Client();
+          final response =
+              await client.head(Uri.parse('https://www.google.com')).timeout(
+                    const Duration(seconds: 3),
+                  );
+          client.close();
+
+          if (response.statusCode >= 200 && response.statusCode < 400) {
+            details.add('✓ HTTP test: Success');
+            result['hasInternet'] = true;
+            result['connectivityType'] = 'connected';
+          } else {
+            details.add('✗ HTTP test: Failed (${response.statusCode})');
+          }
+        } catch (e) {
+          details.add('✗ HTTP test: Failed ($e)');
+        }
+      }
+
+      if (result['hasInternet'] as bool) {
+        details.add('✓ Internet connection confirmed');
+      } else {
+        details.add('✗ No internet connection detected');
+      }
+    } catch (e) {
+      details.add('Error during connection test: $e');
+    }
+
+    return result;
+  }
+
+// Simple debug method
+  static Future<void> debugInternetConnection() async {
+    logDebug('=== Simple Internet Connection Debug ===');
+
+    // Test 1: Quick DNS
+    try {
+      final start = DateTime.now();
+      final result = await InternetAddress.lookup('8.8.8.8').timeout(
+        const Duration(seconds: 3),
+      );
+      final duration = DateTime.now().difference(start);
+      logDebug(
+          'DNS 8.8.8.8: ${result.isNotEmpty ? '✓ Success' : '✗ Failed'} (${duration.inMilliseconds}ms)');
+    } catch (e) {
+      logDebug('DNS 8.8.8.8: ✗ Failed ($e)');
+    }
+
+    // Test 2: Quick HTTP
+    try {
+      final start = DateTime.now();
+      final client = http.Client();
+      final response =
+          await client.head(Uri.parse('https://www.google.com')).timeout(
+                const Duration(seconds: 3),
+              );
+      client.close();
+      final duration = DateTime.now().difference(start);
+      logDebug(
+          'HTTP Google: ✓ Success (${response.statusCode}) (${duration.inMilliseconds}ms)');
+    } catch (e) {
+      logDebug('HTTP Google: ✗ Failed ($e)');
+    }
+
+    // Test 3: Final method result
+    try {
+      final start = DateTime.now();
+      final finalResult = await hasInternetConnection();
+      final duration = DateTime.now().difference(start);
+      logDebug('Final result: $finalResult (${duration.inMilliseconds}ms)');
+    } catch (e) {
+      logError('Final test error', e);
+    }
+
+    logDebug('=== Debug Complete ===');
+  }
+  // ========== END OF INTERNET CONNECTION METHODS ==========
 
   // PIN Code Methods - Enhanced with Security
   static Future<void> savePinCode(String pinCode) async {
@@ -90,7 +281,7 @@ class Helpers {
       final hashedPin = _hashPin(pinCode);
       await prefs.setString(AppConstants.pinCodeKey, hashedPin);
     } catch (e) {
-      print('Error saving PIN code: $e');
+      logError('Error saving PIN code', e);
       throw Exception('Failed to save PIN code');
     }
   }
@@ -100,7 +291,7 @@ class Helpers {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(AppConstants.pinCodeKey);
     } catch (e) {
-      print('Error getting PIN code: $e');
+      logError('Error getting PIN code', e);
       return null;
     }
   }
@@ -110,7 +301,7 @@ class Helpers {
       final pinCode = await getPinCode();
       return pinCode != null && pinCode.isNotEmpty;
     } catch (e) {
-      print('Error checking PIN code: $e');
+      logError('Error checking PIN code', e);
       return false;
     }
   }
@@ -123,7 +314,7 @@ class Helpers {
       final enteredHashedPin = _hashPin(enteredPin);
       return storedHashedPin == enteredHashedPin;
     } catch (e) {
-      print('Error verifying PIN: $e');
+      logError('Error verifying PIN', e);
       return false;
     }
   }
@@ -144,7 +335,7 @@ class Helpers {
         await updateLastActiveTime();
       }
     } catch (e) {
-      print('Error setting login status: $e');
+      logError('Error setting login status', e);
     }
   }
 
@@ -153,7 +344,7 @@ class Helpers {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(AppConstants.isLoggedInKey) ?? false;
     } catch (e) {
-      print('Error checking login status: $e');
+      logError('Error checking login status', e);
       return false;
     }
   }
@@ -167,7 +358,7 @@ class Helpers {
         DateTime.now().millisecondsSinceEpoch,
       );
     } catch (e) {
-      print('Error updating last active time: $e');
+      logError('Error updating last active time', e);
     }
   }
 
@@ -180,7 +371,7 @@ class Helpers {
       }
       return null;
     } catch (e) {
-      print('Error getting last active time: $e');
+      logError('Error getting last active time', e);
       return null;
     }
   }
@@ -198,7 +389,7 @@ class Helpers {
 
       return minutesDifference > AppConstants.backgroundTimeoutMinutes;
     } catch (e) {
-      print('Error checking if PIN required: $e');
+      logError('Error checking if PIN required', e);
       return true; // Default to requiring PIN for security
     }
   }
@@ -209,7 +400,7 @@ class Helpers {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userDataKey, json.encode(userData));
     } catch (e) {
-      print('Error saving user data: $e');
+      logError('Error saving user data', e);
     }
   }
 
@@ -224,7 +415,7 @@ class Helpers {
 
       return null;
     } catch (e) {
-      print('Error getting user data: $e');
+      logError('Error getting user data', e);
       return null;
     }
   }
@@ -236,7 +427,7 @@ class Helpers {
       await prefs.remove(AppConstants.isLoggedInKey);
       await prefs.remove(AppConstants.lastActiveTimeKey);
     } catch (e) {
-      print('Error clearing user data: $e');
+      logError('Error clearing user data', e);
     }
   }
 
@@ -245,7 +436,7 @@ class Helpers {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userTokenKey, token);
     } catch (e) {
-      print('Error saving user token: $e');
+      logError('Error saving user token', e);
     }
   }
 
@@ -254,7 +445,7 @@ class Helpers {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(AppConstants.userTokenKey);
     } catch (e) {
-      print('Error getting user token: $e');
+      logError('Error getting user token', e);
       return null;
     }
   }
@@ -264,7 +455,7 @@ class Helpers {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
     } catch (e) {
-      print('Error clearing all data: $e');
+      logError('Error clearing all data', e);
     }
   }
 
@@ -550,10 +741,10 @@ class Helpers {
   }
 
   // Performance Utilities
+  static Timer? _debounceTimer;
   static void debounce(VoidCallback action, Duration delay) {
-    Timer? timer;
-    timer?.cancel();
-    timer = Timer(delay, action);
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(delay, action);
   }
 
   // Debug Utilities
@@ -572,5 +763,3 @@ class Helpers {
     }
   }
 }
-
-// Timer extension for debounce functionality

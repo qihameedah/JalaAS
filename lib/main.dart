@@ -1,4 +1,4 @@
-// lib/main.dart - Mobile Entry Point
+// lib/main.dart - Updated with Better Internet Handling
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -109,22 +109,50 @@ class _AppInitializerState extends State<AppInitializer>
     with WidgetsBindingObserver {
   bool _hasInternet = true;
   bool _isNavigating = false;
+  bool _isCheckingInternet = false;
   DateTime? _backgroundTime;
   Timer? _timeoutTimer;
   bool _isInBackground = false;
+  String _connectionStatus = 'جاري التحقق من الاتصال...';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkInitialState();
+    _initializeApp();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _timeoutTimer?.cancel();
+    Helpers.stopInternetMonitoring();
     super.dispose();
+  }
+
+  Future<void> _initializeApp() async {
+    // Add a small delay to show the loading screen
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Start internet monitoring
+    Helpers.startInternetMonitoring(
+      onConnectivityChanged: (bool isConnected) {
+        if (mounted && !_isNavigating) {
+          setState(() {
+            _hasInternet = isConnected;
+          });
+
+          if (isConnected) {
+            _checkInitialState();
+          } else {
+            _navigateToNoInternet();
+          }
+        }
+      },
+    );
+
+    // Initial state check
+    await _checkInitialState();
   }
 
   void _startBackgroundTimer() {
@@ -199,17 +227,34 @@ class _AppInitializerState extends State<AppInitializer>
 
   // Initial app state: check internet, PIN, and login
   Future<void> _checkInitialState() async {
-    if (_isNavigating || !mounted) return;
+    if (_isNavigating || !mounted || _isCheckingInternet) return;
+
+    setState(() {
+      _isCheckingInternet = true;
+      _connectionStatus = 'جاري التحقق من الاتصال بالإنترنت...';
+    });
 
     try {
-      _hasInternet = await Helpers.hasInternetConnection();
+      // Use the improved internet check with detailed info
+      final connectionInfo = await Helpers.getDetailedConnectionInfo();
+      _hasInternet = connectionInfo['hasInternet'] as bool;
+
+      print('Connection Info: $connectionInfo');
 
       if (!mounted) return;
+
+      setState(() {
+        _isCheckingInternet = false;
+      });
 
       if (!_hasInternet) {
         _navigateToNoInternet();
         return;
       }
+
+      setState(() {
+        _connectionStatus = 'جاري التحقق من بيانات المصادقة...';
+      });
 
       final hasPinCode = await Helpers.hasPinCode();
 
@@ -224,7 +269,13 @@ class _AppInitializerState extends State<AppInitializer>
       }
     } catch (e) {
       print('Error in _checkInitialState: $e');
+      setState(() {
+        _isCheckingInternet = false;
+      });
+
       if (mounted) {
+        // Show debug info in case of persistent issues
+        await Helpers.debugInternetConnection();
         _navigateToNoInternet();
       }
     }
@@ -232,13 +283,22 @@ class _AppInitializerState extends State<AppInitializer>
 
   // Resume app: recheck internet and PIN based on background time
   Future<void> _checkAppResume() async {
-    if (_isNavigating || !mounted) return;
+    if (_isNavigating || !mounted || _isCheckingInternet) return;
+
+    setState(() {
+      _isCheckingInternet = true;
+      _connectionStatus = 'جاري التحقق من الاتصال...';
+    });
 
     try {
-      // First check internet connection
-      _hasInternet = await Helpers.hasInternetConnection();
+      // Use quick check for resume to be faster
+      _hasInternet = await Helpers.hasInternetConnectionQuick();
 
       if (!mounted) return;
+
+      setState(() {
+        _isCheckingInternet = false;
+      });
 
       if (!_hasInternet) {
         _navigateToNoInternet();
@@ -258,6 +318,9 @@ class _AppInitializerState extends State<AppInitializer>
       }
     } catch (e) {
       print('Error in _checkAppResume: $e');
+      setState(() {
+        _isCheckingInternet = false;
+      });
     }
   }
 
@@ -291,9 +354,11 @@ class _AppInitializerState extends State<AppInitializer>
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => NoInternetScreen(
-          onRetry: () {
+          onRetry: () async {
             _isNavigating = false;
-            _checkInitialState();
+            // Add a small delay before rechecking
+            await Future.delayed(const Duration(milliseconds: 500));
+            await _checkInitialState();
           },
         ),
       ),
@@ -384,14 +449,37 @@ class _AppInitializerState extends State<AppInitializer>
                   ),
             ),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(
-              'جاري التحميل...',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
+            if (_isCheckingInternet) ...[
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                _connectionStatus,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ] else ...[
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'جاري التحميل...',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+              ),
+            ],
+
+            // Debug button (remove in production)
+            if (const bool.fromEnvironment('dart.vm.product') == false) ...[
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () async {
+                  await Helpers.debugInternetConnection();
+                },
+                child: const Text('Debug Connection'),
+              ),
+            ],
           ],
         ),
       ),

@@ -150,7 +150,7 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(AppConstants.backgroundColor),
+      backgroundColor: Colors.grey[50],
       appBar: _currentUser != null
           ? _MyHomeAppBar(
               currentUser: _currentUser!,
@@ -163,32 +163,26 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
               foregroundColor: Colors.white,
               automaticallyImplyLeading: false,
             ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              const Color(AppConstants.surfaceColor),
-              Colors.white,
-            ],
-          ),
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Column(
-              children: [
-                // Enhanced Search Field
-                Container(
-                  margin: const EdgeInsets.all(16),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+
+              // Enhanced Search Field
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
                   decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 12,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 0),
                       ),
                     ],
                   ),
@@ -199,16 +193,10 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                       labelText: 'البحث عن عميل',
                       hintText: 'ادخل اسم العميل أو رقمه',
                       prefixIcon: Container(
-                        margin: const EdgeInsets.all(8),
+                        margin: const EdgeInsets.all(12),
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(AppConstants.accentColor),
-                              const Color(AppConstants.accentColor)
-                                  .withOpacity(0.8),
-                            ],
-                          ),
+                          color: const Color(AppConstants.accentColor),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -217,8 +205,6 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                           size: 20,
                         ),
                       ),
-                      filled: true,
-                      fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
@@ -230,278 +216,341 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                           width: 2,
                         ),
                       ),
+                      filled: true,
+                      fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
+                          horizontal: 16, vertical: 18),
                     ),
                   ),
                 ),
+              ),
 
-                // Contact count badge
-                if (_filteredContacts.isNotEmpty) ...[
-                  Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(AppConstants.accentColor)
-                                    .withOpacity(0.1),
-                                const Color(AppConstants.accentColor)
-                                    .withOpacity(0.05),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(AppConstants.accentColor)
-                                  .withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            '${_filteredContacts.length} عميل',
-                            style: const TextStyle(
-                              color: Color(AppConstants.accentColor),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
+              const SizedBox(height: 16),
+
+              // Contact count badge with better styling
+              if (_filteredContacts.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(AppConstants.accentColor)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(
+                            color: const Color(AppConstants.accentColor)
+                                .withOpacity(0.3),
+                            width: 1,
                           ),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.people,
+                              size: 16,
+                              color: const Color(AppConstants.accentColor),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${_filteredContacts.length} عميل',
+                              style: const TextStyle(
+                                color: Color(AppConstants.accentColor),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+                const SizedBox(height: 16),
+              ],
 
-                // Enhanced Contacts List
-                Expanded(
-                  child: _isLoading
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          const Color(AppConstants.accentColor)
-                                              .withOpacity(0.1),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
-                                child: const CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color(AppConstants.accentColor)),
-                                  strokeWidth: 3,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'جاري تحميل العملاء...',
-                                style: TextStyle(
-                                  color: Color(AppConstants.primaryColor),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : _filteredContacts.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(24),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey.withOpacity(0.1),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 10),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.people_outline,
-                                      size: 60,
-                                      color: Colors.grey[400],
-                                    ),
+              // Enhanced Contacts List
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.06),
+                                    blurRadius: 20,
+                                    spreadRadius: 2,
+                                    offset: const Offset(0, 0),
                                   ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    _contacts.isEmpty
-                                        ? 'لا توجد عملاء'
-                                        : 'لا توجد نتائج للبحث',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.grey[600],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  if (_contacts.isEmpty) ...[
-                                    const SizedBox(height: 16),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            const Color(
-                                                AppConstants.accentColor),
-                                            const Color(
-                                                    AppConstants.accentColor)
-                                                .withOpacity(0.8),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(25),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(
-                                                    AppConstants.accentColor)
-                                                .withOpacity(0.3),
-                                            blurRadius: 15,
-                                            offset: const Offset(0, 8),
-                                          ),
-                                        ],
-                                      ),
-                                      child: TextButton(
-                                        onPressed: _loadContacts,
-                                        style: TextButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 24, vertical: 12),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(25),
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'إعادة التحميل',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                 ],
                               ),
-                            )
-                          : ListView.builder(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _filteredContacts.length,
-                              itemBuilder: (context, index) {
-                                final contact = _filteredContacts[index];
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
+                              child: const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(AppConstants.accentColor)),
+                                strokeWidth: 3,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'جاري تحميل العملاء...',
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryColor),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _filteredContacts.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(32),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(24),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 6,
-                                        spreadRadius: 0.5,
+                                        color: Colors.black.withOpacity(0.06),
+                                        blurRadius: 20,
+                                        spreadRadius: 2,
                                         offset: const Offset(0, 0),
                                       ),
                                     ],
                                   ),
-                                  child: InkWell(
-                                    onTap: () => _selectContact(contact),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Row(
-                                        children: [
-                                          // Simple circular avatar
-                                          Container(
-                                            width: 48,
-                                            height: 48,
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                  AppConstants.accentColor),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                contact.nameAr.isNotEmpty
-                                                    ? contact.nameAr[0]
-                                                    : 'ع',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18,
+                                  child: Icon(
+                                    Icons.people_outline,
+                                    size: 80,
+                                    color: Colors.grey[300],
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  _contacts.isEmpty
+                                      ? 'لا توجد عملاء'
+                                      : 'لا توجد نتائج للبحث',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _contacts.isEmpty
+                                      ? 'لم يتم العثور على أي عملاء في النظام'
+                                      : 'جرب البحث بكلمات مختلفة',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                                if (_contacts.isEmpty) ...[
+                                  const SizedBox(height: 24),
+                                  ElevatedButton(
+                                    onPressed: _loadContacts,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          const Color(AppConstants.accentColor),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 32, vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text(
+                                      'إعادة التحميل',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: ListView.builder(
+                              itemCount: _filteredContacts.length,
+                              itemBuilder: (context, index) {
+                                final contact = _filteredContacts[index];
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 8,
+                                        spreadRadius: 1,
+                                        offset: const Offset(0, 0),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () => _selectContact(contact),
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Row(
+                                          children: [
+                                            // Enhanced Avatar
+                                            Container(
+                                              width: 56,
+                                              height: 56,
+                                              decoration: BoxDecoration(
+                                                color: const Color(
+                                                    AppConstants.accentColor),
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color(
+                                                            AppConstants
+                                                                .accentColor)
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    spreadRadius: 0,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  contact.nameAr.isNotEmpty
+                                                      ? contact.nameAr[0]
+                                                      : 'ع',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 22,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
 
-                                          const SizedBox(width: 16),
+                                            const SizedBox(width: 20),
 
-                                          // Content - Only Name and Code
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                // Contact Name
-                                                Text(
-                                                  contact.nameAr,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 16,
-                                                    color: Color(AppConstants
-                                                        .primaryColor),
+                                            // Content - Name and Code
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  // Contact Name
+                                                  Text(
+                                                    contact.nameAr,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 18,
+                                                      color: Color(AppConstants
+                                                          .primaryColor),
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
 
-                                                const SizedBox(height: 6),
+                                                  const SizedBox(height: 8),
 
-                                                // Contact Code
-                                                Text(
-                                                  '# ${contact.code}',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: const Color(
-                                                        AppConstants
-                                                            .accentColor),
+                                                  // Contact Code with better styling
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: const Color(
+                                                                  AppConstants
+                                                                      .accentColor)
+                                                              .withOpacity(0.1),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(8),
+                                                        ),
+                                                        child: Text(
+                                                          '#',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: const Color(
+                                                                AppConstants
+                                                                    .accentColor),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Text(
+                                                        contact.code,
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: const Color(
+                                                              AppConstants
+                                                                  .accentColor),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          ),
 
-                                          // Simple arrow
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            size: 16,
-                                            color: Colors.grey[400],
-                                          ),
-                                        ],
+                                            // Enhanced Arrow
+                                            Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: const Color(AppConstants
+                                                        .primaryColor)
+                                                    .withOpacity(0.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: const Icon(
+                                                Icons.arrow_forward_ios,
+                                                size: 16,
+                                                color: Color(
+                                                    AppConstants.primaryColor),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
                                 );
                               },
                             ),
-                ),
-              ],
-            ),
+                          ),
+              ),
+
+              const SizedBox(height: 16),
+            ],
           ),
         ),
       ),

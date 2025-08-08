@@ -99,7 +99,10 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
                                 AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Icon(Icons.refresh),
+                      : const Icon(
+                          Icons.refresh,
+                          color: Colors.white,
+                        ),
                   label:
                       Text(_isRetrying ? 'جاري المحاولة...' : 'إعادة المحاولة'),
                   style: ElevatedButton.styleFrom(
