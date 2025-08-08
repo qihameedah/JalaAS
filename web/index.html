@@ -95,8 +95,9 @@
 
   <!-- This script installs service_worker.js to provide PWA functionality -->
   <script>
-    var serviceWorkerVersion = null;
+    var serviceWorkerVersion = '{{flutter_service_worker_version}}'; // Update this line with the template token
     var scriptLoaded = false;
+
     function loadMainDartJs() {
       if (scriptLoaded) {
         return;
@@ -116,8 +117,6 @@
       // Service workers are supported. Use them.
       window.addEventListener('load', function () {
         // Wait for registration to finish before dropping the <script> tag.
-        // Otherwise, the browser will load the script multiple times,
-        // potentially different versions.
         var serviceWorkerUrl = 'flutter_service_worker.js?v=' + serviceWorkerVersion;
         navigator.serviceWorker.register(serviceWorkerUrl)
           .then((reg) => {
@@ -147,7 +146,7 @@
           });
 
         // If service worker doesn't succeed in a reasonable amount of time,
-        // fallback to plaint <script> tag.
+        // fallback to plain <script> tag.
         setTimeout(() => {
           if (!scriptLoaded) {
             console.warn(
@@ -162,5 +161,6 @@
       loadMainDartJs();
     }
   </script>
+
 </body>
 </html>

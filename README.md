@@ -15,13 +15,9 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
-
 to run the web interface, you must in terminal type this:
 flutter run -d chrome -t lib/web/web_main.dart
 
 admin email:
 qihameedah@gmail.com
-
 itd@jala.ps
-
-for mobile interface you must run the project like normal

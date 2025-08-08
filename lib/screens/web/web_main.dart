@@ -11,7 +11,7 @@ class WebApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '${AppConstants.appName} - Web',
-      debugShowCheckedModeBanner: true,
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
         primaryColor: const Color(AppConstants.primaryColor),
